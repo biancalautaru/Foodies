@@ -2,13 +2,12 @@ package models;
 
 public class Driver extends User {
     private VehicleType vehicleType;
-    private String licensePlate;
     private boolean isAvailable;
 
-    public Driver(String id, String name, String email, String phone, VehicleType vehicleType, boolean isAvailable) {
+    public Driver(String id, String name, String email, String phone, VehicleType vehicleType) {
         super(id, name, email, phone);
         this.vehicleType = vehicleType;
-        this.isAvailable = isAvailable;
+        isAvailable = true;
     }
 
     public VehicleType getVehicleType() {

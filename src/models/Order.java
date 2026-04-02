@@ -1,7 +1,11 @@
 package models;
 
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+
 public class Order {
     private String id;
+    private LocalDateTime date;
     private Customer customer;
     private Restaurant restaurant;
     private Driver driver;
@@ -11,6 +15,7 @@ public class Order {
 
     public Order(String id, Customer customer, Restaurant restaurant, int maxItems) {
         this.id = id;
+        this.date = LocalDateTime.now();
         this.customer = customer;
         this.restaurant = restaurant;
         this.items = new MenuItem[maxItems];
@@ -24,6 +29,14 @@ public class Order {
 
     public void setId(String id) {
         this.id = id;
+    }
+
+    public LocalDateTime getDate() {
+        return date;
+    }
+
+    public void setDate(LocalDateTime date) {
+        this.date = date;
     }
 
     public Customer getCustomer() {
@@ -74,13 +87,12 @@ public class Order {
         this.status = status;
     }
 
-    public void addItem(MenuItem item){
-        if (itemsCount < items.length){
-            items[itemsCount] = item;
-            itemsCount++;
-        }
-        else {
+    public void addItem(MenuItem item) {
+        if (itemsCount == items.length) {
             System.out.println("Maximum items reached");
+            return;
         }
+
+        items[itemsCount++] = item;
     }
 }

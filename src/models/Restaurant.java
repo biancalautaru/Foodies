@@ -45,13 +45,17 @@ public class Restaurant {
         this.menuCount = menuCount;
     }
 
+    @Override
+    public String toString() {
+        return id + ": " + name;
+    }
+
     public void addMenuItem(MenuItem menuItem) {
-        if (this.menuCount < menu.length) {
-            menu[menuCount] = menuItem;
-            menuCount++;
-        }
-        else {
+        if (menuCount == menu.length) {
             System.out.println("Menu Full");
+            return;
         }
+
+        menu[menuCount++] = menuItem;
     }
 }
