@@ -10,14 +10,6 @@ public class Driver extends User {
         isAvailable = true;
     }
 
-    public VehicleType getVehicleType() {
-        return vehicleType;
-    }
-
-    public void setVehicleType(VehicleType vehicleType) {
-        this.vehicleType = vehicleType;
-    }
-
     public boolean isAvailable() {
         return isAvailable;
     }

@@ -19,40 +19,20 @@ public class Restaurant {
         return id;
     }
 
-    public void setId(String id) {
-        this.id = id;
-    }
-
     public String getName() {
         return name;
-    }
-
-    public void setName(String name) {
-        this.name = name;
     }
 
     public Address getAddress() {
         return address;
     }
 
-    public void setAddress(Address address) {
-        this.address = address;
-    }
-
     public MenuItem[] getMenu() {
         return menu;
     }
 
-    public void setMenu(MenuItem[] menu) {
-        this.menu = menu;
-    }
-
     public int getMenuCount() {
         return menuCount;
-    }
-
-    public void setMenuCount(int menuCount) {
-        this.menuCount = menuCount;
     }
 
     @Override

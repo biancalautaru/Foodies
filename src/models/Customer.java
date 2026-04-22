@@ -12,28 +12,8 @@ public class Customer extends User {
         this.cart = new Cart(maxItems);
     }
 
-    public Address[] getAddresses() {
-        return addresses;
-    }
-
-    public void setAddresses(Address[] addresses) {
-        this.addresses = addresses;
-    }
-
-    public int getAddressCount() {
-        return addressCount;
-    }
-
-    public void setAddressCount(int addressCount) {
-        this.addressCount = addressCount;
-    }
-
     public Cart getCart() {
         return cart;
-    }
-
-    public void setCart(Cart cart) {
-        this.cart = cart;
     }
 
     public void addAddress(Address address) {

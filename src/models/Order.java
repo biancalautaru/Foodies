@@ -13,6 +13,8 @@ public class Order {
     private MenuItem[] items;
     private int itemsCount;
     private OrderStatus status;
+    private Review review;
+    private static final double DELIVERY_FEE = 5.99;
 
     public Order(String id, Customer customer, Restaurant restaurant, Address deliveryAddress, int maxItems) {
         this.id = id;
@@ -23,46 +25,23 @@ public class Order {
         this.items = new MenuItem[maxItems];
         this.itemsCount = 0;
         this.status = OrderStatus.PENDING;
+        this.review = null;
     }
 
     public String getId() {
         return id;
     }
 
-    public void setId(String id) {
-        this.id = id;
-    }
-
     public LocalDateTime getDate() {
         return date;
-    }
-
-    public void setDate(LocalDateTime date) {
-        this.date = date;
     }
 
     public Customer getCustomer() {
         return customer;
     }
 
-    public void setCustomer(Customer customer) {
-        this.customer = customer;
-    }
-
     public Restaurant getRestaurant() {
         return restaurant;
-    }
-
-    public void setRestaurant(Restaurant restaurant) {
-        this.restaurant = restaurant;
-    }
-
-    public Address getDeliveryAddress() {
-        return deliveryAddress;
-    }
-
-    public void setDeliveryAddress(Address deliveryAddress) {
-        this.deliveryAddress = deliveryAddress;
     }
 
     public Driver getDriver() {
@@ -77,16 +56,8 @@ public class Order {
         return items;
     }
 
-    public void setItems(MenuItem[] items) {
-        this.items = items;
-    }
-
     public int getItemsCount() {
         return itemsCount;
-    }
-
-    public void setItemsCount(int itemsCount) {
-        this.itemsCount = itemsCount;
     }
 
     public OrderStatus getStatus() {
@@ -97,6 +68,14 @@ public class Order {
         this.status = status;
     }
 
+    public Review getReview() {
+        return review;
+    }
+
+    public void setReview(Review review) {
+        this.review = review;
+    }
+
     public void addItem(MenuItem item) {
         if (itemsCount == items.length) {
             System.out.println("Error: Maximum items reached.");
@@ -104,5 +83,46 @@ public class Order {
         }
 
         items[itemsCount++] = item;
+    }
+
+    public double getSubtotal() {
+        double subtotal = 0;
+        for (int i = 0; i < itemsCount; i++)
+            subtotal += items[i].getPrice();
+        return subtotal;
+    }
+
+    public double getDeliveryFee() {
+        return DELIVERY_FEE;
+    }
+
+    public double getTotal() {
+        return getSubtotal() + getDeliveryFee();
+    }
+
+    public void printOrderSummary() {
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd.MM.yyyy, HH:mm");
+
+        System.out.println("\n========== ORDER SUMMARY ==========");
+
+        System.out.println("Order ID: " + id);
+        System.out.println("Date: " + date.format(formatter));
+        System.out.println("Customer: " + customer.getName());
+        System.out.println("Restaurant: " + restaurant.getName());
+        System.out.println("Status: " + status);
+
+        System.out.println("\n--- Items ---");
+        for (int i = 0; i < itemsCount; i++)
+            System.out.println(items[i].getName() + " - $" + String.format("%.2f", items[i].getPrice()));
+        
+        System.out.println("\n--- Pricing ---");
+        System.out.println("Subtotal: $" + String.format("%.2f", getSubtotal()));
+        System.out.println("Delivery Fee: $" + String.format("%.2f", getDeliveryFee()));
+        System.out.println("TOTAL: $" + String.format("%.2f", getTotal()));
+
+        if (driver != null)
+            System.out.println("Driver: " + driver.getName());
+
+        System.out.println("==================================\n");
     }
 }

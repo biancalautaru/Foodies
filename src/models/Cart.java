@@ -15,24 +15,12 @@ public class Cart {
         return items;
     }
 
-    public void setItems(MenuItem[] items) {
-        this.items = items;
-    }
-
     public int getItemsCount() {
         return itemsCount;
     }
 
-    public void setItemsCount(int itemsCount) {
-        this.itemsCount = itemsCount;
-    }
-
     public Restaurant getRestaurant() {
         return restaurant;
-    }
-
-    public void setRestaurant(Restaurant restaurant) {
-        this.restaurant = restaurant;
     }
 
     public void addItem(MenuItem item) {
@@ -41,7 +29,7 @@ public class Cart {
         if (itemsCount == 0)
             this.restaurant = itemRestaurant;
         else
-            if (!this.restaurant.getId().equals(restaurant.getId())) {
+            if (!itemRestaurant.getId().equals(this.restaurant.getId())) {
                 System.out.println("Error: Cannot add items from different restaurants to cart.");
                 return;
             }

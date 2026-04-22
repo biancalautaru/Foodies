@@ -3,12 +3,14 @@ package models;
 public class Review {
     private String id;
     private Customer customer;
+    private Order order;
     private int rating;
     private String comment;
 
-    public Review(String id, Customer customer, int rating, String comment) {
+    public Review(String id, Customer customer, Order order, int rating, String comment) {
         this.id = id;
         this.customer = customer;
+        this.order = order;
         this.rating = rating;
         this.comment = comment;
     }
@@ -17,31 +19,29 @@ public class Review {
         return id;
     }
 
-    public void setId(String id) {
-        this.id = id;
-    }
-
     public Customer getCustomer() {
         return customer;
     }
 
-    public void setCustomer(Customer customer) {
-        this.customer = customer;
+    public Order getOrder() {
+        return order;
     }
 
     public int getRating() {
         return rating;
     }
 
-    public void setRating(int rating) {
-        this.rating = rating;
-    }
-
     public String getComment() {
         return comment;
     }
 
-    public void setComment(String comment) {
-        this.comment = comment;
+    @Override
+    public String toString() {
+        return "Review{" +
+                "customer='" + customer.getName() + '\'' +
+                ", rating=" + rating +
+                ", comment='" + comment + '\'' +
+                '}';
     }
 }
+
