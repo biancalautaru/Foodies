@@ -1,18 +1,47 @@
 package models;
 
 public class Customer extends User {
-    private Address deliveryAddress;
+    private Address[] addresses;
+    private int addressCount;
+    private Cart cart;
 
-    public Customer(String id, String name, String email, String phone, Address deliveryAddress) {
+    public Customer(String id, String name, String email, String phone, int maxAddresses, int maxItems) {
         super(id, name, email, phone);
-        this.deliveryAddress = deliveryAddress;
+        this.addresses = new Address[maxAddresses];
+        this.addressCount = 0;
+        this.cart = new Cart(maxItems);
     }
 
-    public Address getDeliveryAddress() {
-        return deliveryAddress;
+    public Address[] getAddresses() {
+        return addresses;
     }
 
-    public void setDeliveryAddress(Address deliveryAddress) {
-        this.deliveryAddress = deliveryAddress;
+    public void setAddresses(Address[] addresses) {
+        this.addresses = addresses;
+    }
+
+    public int getAddressCount() {
+        return addressCount;
+    }
+
+    public void setAddressCount(int addressCount) {
+        this.addressCount = addressCount;
+    }
+
+    public Cart getCart() {
+        return cart;
+    }
+
+    public void setCart(Cart cart) {
+        this.cart = cart;
+    }
+
+    public void addAddress(Address address) {
+        if (addressCount == addresses.length) {
+            System.out.println("Error: Maximum addresses reached.");
+            return;
+        }
+
+        addresses[addressCount++] = address;
     }
 }

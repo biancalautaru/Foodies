@@ -8,16 +8,18 @@ public class Order {
     private LocalDateTime date;
     private Customer customer;
     private Restaurant restaurant;
+    private Address deliveryAddress;
     private Driver driver;
     private MenuItem[] items;
     private int itemsCount;
     private OrderStatus status;
 
-    public Order(String id, Customer customer, Restaurant restaurant, int maxItems) {
+    public Order(String id, Customer customer, Restaurant restaurant, Address deliveryAddress, int maxItems) {
         this.id = id;
         this.date = LocalDateTime.now();
         this.customer = customer;
         this.restaurant = restaurant;
+        this.deliveryAddress = deliveryAddress;
         this.items = new MenuItem[maxItems];
         this.itemsCount = 0;
         this.status = OrderStatus.PENDING;
@@ -55,6 +57,14 @@ public class Order {
         this.restaurant = restaurant;
     }
 
+    public Address getDeliveryAddress() {
+        return deliveryAddress;
+    }
+
+    public void setDeliveryAddress(Address deliveryAddress) {
+        this.deliveryAddress = deliveryAddress;
+    }
+
     public Driver getDriver() {
         return driver;
     }
@@ -89,7 +99,7 @@ public class Order {
 
     public void addItem(MenuItem item) {
         if (itemsCount == items.length) {
-            System.out.println("Maximum items reached");
+            System.out.println("Error: Maximum items reached.");
             return;
         }
 
