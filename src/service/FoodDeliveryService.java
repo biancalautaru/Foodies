@@ -139,9 +139,9 @@ public class FoodDeliveryService {
         if (order.updateStatus(OrderStatus.ACCEPTED)) {
             System.out.println("Order " + order.getId() + " accepted by restaurant " + order.getRestaurant().getName() + ".");
             assignDriversToPendingOrders();
-        } else {
-            System.out.println("Error: Cannot accept order " + order.getId() + ".");
         }
+        else
+            System.out.println("Error: Cannot accept order " + order.getId() + ".");
     }
 
     public void assignDriverToOrder(String orderId, String driverId) {
@@ -171,9 +171,9 @@ public class FoodDeliveryService {
         if (order.updateStatus(OrderStatus.DRIVER_FOUND)) {
             driver.setAvailable(false);
             System.out.println("Driver " + driver.getName() + " assigned to order " + order.getId() + ".");
-        } else {
-            System.out.println("Error: Cannot assign driver to order " + order.getId() + ".");
         }
+        else
+            System.out.println("Error: Cannot assign driver to order " + order.getId() + ".");
     }
 
     public void startOrderPreparation(String orderId) {
@@ -188,11 +188,10 @@ public class FoodDeliveryService {
             return;
         }
 
-        if (order.updateStatus(OrderStatus.PREPARING)) {
+        if (order.updateStatus(OrderStatus.PREPARING))
             System.out.println("Order " + order.getId() + " is now being prepared.");
-        } else {
+        else
             System.out.println("Error: Cannot start preparation for order " + order.getId() + ".");
-        }
     }
 
     public void markOrderReady(String orderId) {
@@ -207,11 +206,10 @@ public class FoodDeliveryService {
             return;
         }
 
-        if (order.updateStatus(OrderStatus.READY_FOR_PICKUP)) {
+        if (order.updateStatus(OrderStatus.READY_FOR_PICKUP))
             System.out.println("Order " + order.getId() + " is ready for pickup.");
-        } else {
+        else
             System.out.println("Error: Cannot mark order " + order.getId() + " as ready.");
-        }
     }
 
     public void pickupOrder(String orderId) {
@@ -231,11 +229,10 @@ public class FoodDeliveryService {
             return;
         }
 
-        if (order.updateStatus(OrderStatus.OUT_FOR_DELIVERY)) {
+        if (order.updateStatus(OrderStatus.OUT_FOR_DELIVERY))
             System.out.println("Order " + order.getId() + " is now out for delivery with driver " + order.getDriver().getName() + ".");
-        } else {
+        else
             System.out.println("Error: Cannot pick up order " + order.getId() + ".");
-        }
     }
 
     public void deliverOrder(String orderId) {
@@ -252,14 +249,14 @@ public class FoodDeliveryService {
 
         if (order.updateStatus(OrderStatus.DELIVERED)) {
             Driver driver = order.getDriver();
-            if (driver != null) {
+            if (driver != null)
                 driver.setAvailable(true);
-            }
             System.out.println("Order " + order.getId() + " delivered successfully.");
+
             assignDriversToPendingOrders();
-        } else {
-            System.out.println("Error: Cannot deliver order " + order.getId() + ".");
         }
+        else
+            System.out.println("Error: Cannot deliver order " + order.getId() + ".");
     }
 
     public void cancelOrder(String orderId) {
@@ -269,20 +266,19 @@ public class FoodDeliveryService {
             return;
         }
 
-        if (order.cancelOrder()) {
-            Driver driver = order.getDriver();
-            if (driver != null) {
-                driver.setAvailable(true);
-            }
-
-            String message = "Order " + order.getId() + " cancelled.";
-            if (order.getCancellationFee() > 0) {
-                message += " Cancellation fee: " + String.format("%.2f", order.getCancellationFee()) + " lei.";
-            }
-            System.out.println(message);
-        } else {
-            System.out.println("Error: Cannot cancel order " + order.getId() + " (out for delivery orders cannot be cancelled).");
+        if (!order.cancelOrder()) {
+            System.out.println("Error: Cannot cancel order " + order.getId() + " because it's being delivered.");
+            return;
         }
+
+        Driver driver = order.getDriver();
+        if (driver != null)
+            driver.setAvailable(true);
+
+        String message = "Order " + order.getId() + " cancelled.";
+        if (order.getCancellationFee() > 0)
+            message += " Cancellation fee: " + String.format("%.2f", order.getCancellationFee()) + " lei.";
+        System.out.println(message);
     }
 
     public void submitReview(String orderId, int rating, String comment) {

@@ -61,50 +61,49 @@ public class Order {
         return status;
     }
 
-    public void setStatus(OrderStatus status) {
-        this.status = status;
-    }
-
     public boolean updateStatus(OrderStatus newStatus) {
-        if (isValidStatusTransition(this.status, newStatus)) {
-            this.status = newStatus;
-            this.statusChangeTime = LocalDateTime.now();
+        if (isValidStatusTransition(status, newStatus)) {
+            status = newStatus;
+            statusChangeTime = LocalDateTime.now();
             return true;
         }
+
         return false;
     }
 
     public boolean cancelOrder() {
-        if (this.status == OrderStatus.OUT_FOR_DELIVERY) {
+        if (status == OrderStatus.OUT_FOR_DELIVERY)
             return false;
-        }
 
-        if (this.status == OrderStatus.PREPARING || this.status == OrderStatus.DRIVER_FOUND || this.status == OrderStatus.READY_FOR_PICKUP) {
-            this.cancellationFee = CANCELLATION_FEE;
-        }
+        if (status == OrderStatus.PREPARING || status == OrderStatus.DRIVER_FOUND || status == OrderStatus.READY_FOR_PICKUP)
+            cancellationFee = CANCELLATION_FEE;
 
-        this.status = OrderStatus.CANCELLED;
+        status = OrderStatus.CANCELLED;
         this.statusChangeTime = LocalDateTime.now();
+
         return true;
     }
 
-    private boolean isValidStatusTransition(OrderStatus from, OrderStatus to) {
-        if (from == to) return false;
-        if (from == OrderStatus.CANCELLED || to == OrderStatus.CANCELLED) return false;
+    private boolean isValidStatusTransition(OrderStatus oldStatus, OrderStatus newStatus) {
+        if (oldStatus == newStatus)
+            return false;
 
-        switch (from) {
+        if (oldStatus == OrderStatus.CANCELLED || newStatus == OrderStatus.CANCELLED)
+            return false;
+
+        switch (oldStatus) {
             case PENDING:
-                return to == OrderStatus.ACCEPTED;
+                return newStatus == OrderStatus.ACCEPTED;
             case ACCEPTED:
-                return to == OrderStatus.DRIVER_FOUND || to == OrderStatus.PREPARING;
+                return newStatus == OrderStatus.DRIVER_FOUND || newStatus == OrderStatus.PREPARING;
             case DRIVER_FOUND:
-                return to == OrderStatus.PREPARING;
+                return newStatus == OrderStatus.PREPARING;
             case PREPARING:
-                return to == OrderStatus.READY_FOR_PICKUP;
+                return newStatus == OrderStatus.READY_FOR_PICKUP;
             case READY_FOR_PICKUP:
-                return to == OrderStatus.OUT_FOR_DELIVERY;
+                return newStatus == OrderStatus.OUT_FOR_DELIVERY;
             case OUT_FOR_DELIVERY:
-                return to == OrderStatus.DELIVERED;
+                return newStatus == OrderStatus.DELIVERED;
             case DELIVERED:
                 return false;
             default:
@@ -114,10 +113,6 @@ public class Order {
 
     public double getCancellationFee() {
         return cancellationFee;
-    }
-
-    public LocalDateTime getStatusChangeTime() {
-        return statusChangeTime;
     }
 
     public Review getReview() {
