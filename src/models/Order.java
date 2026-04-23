@@ -29,7 +29,6 @@ public class Order {
         this.itemsCount = 0;
         this.status = OrderStatus.PENDING;
         this.statusChangeTime = LocalDateTime.now();
-        this.review = null;
         this.cancellationFee = 0;
     }
 
@@ -61,6 +60,14 @@ public class Order {
         return status;
     }
 
+    public Review getReview() {
+        return review;
+    }
+
+    public void setReview(Review review) {
+        this.review = review;
+    }
+
     public boolean updateStatus(OrderStatus newStatus) {
         if (isValidStatusTransition(status, newStatus)) {
             status = newStatus;
@@ -72,10 +79,10 @@ public class Order {
     }
 
     public boolean cancelOrder() {
-        if (status == OrderStatus.OUT_FOR_DELIVERY)
+        if (status == OrderStatus.OUT_FOR_DELIVERY || status == OrderStatus.DELIVERED)
             return false;
 
-        if (status == OrderStatus.PREPARING || status == OrderStatus.DRIVER_FOUND || status == OrderStatus.READY_FOR_PICKUP)
+        if (status == OrderStatus.PREPARING || status == OrderStatus.READY_FOR_PICKUP)
             cancellationFee = CANCELLATION_FEE;
 
         status = OrderStatus.CANCELLED;
@@ -95,8 +102,6 @@ public class Order {
             case PENDING:
                 return newStatus == OrderStatus.ACCEPTED;
             case ACCEPTED:
-                return newStatus == OrderStatus.DRIVER_FOUND || newStatus == OrderStatus.PREPARING;
-            case DRIVER_FOUND:
                 return newStatus == OrderStatus.PREPARING;
             case PREPARING:
                 return newStatus == OrderStatus.READY_FOR_PICKUP;
@@ -113,14 +118,6 @@ public class Order {
 
     public double getCancellationFee() {
         return cancellationFee;
-    }
-
-    public Review getReview() {
-        return review;
-    }
-
-    public void setReview(Review review) {
-        this.review = review;
     }
 
     public void addItem(MenuItem item) {

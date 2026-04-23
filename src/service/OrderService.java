@@ -3,91 +3,21 @@ package service;
 import models.*;
 import java.time.format.DateTimeFormatter;
 
-public class FoodDeliveryService {
-    private Customer[] customers;
-    private int customerCount;
-    private Driver[] drivers;
-    private int driverCount;
-    private Restaurant[] restaurants;
-    private int restaurantCount;
+public class OrderService {
     private Order[] orders;
     private int orderCount;
     private Review[] reviews;
     private int reviewCount;
+    private UserService userService;
+    private RestaurantService restaurantService;
 
-    public FoodDeliveryService(int maxUsers, int maxRestaurants, int maxOrders) {
-        this.customers = new Customer[maxUsers];
-        this.customerCount = 0;
-        this.drivers = new Driver[maxUsers];
-        this.driverCount = 0;
-        this.restaurants = new Restaurant[maxUsers];
-        this.restaurantCount = 0;
+    public OrderService(int maxOrders, UserService userService, RestaurantService restaurantService) {
         this.orders = new Order[maxOrders];
         this.orderCount = 0;
         this.reviews = new Review[maxOrders * 2];
         this.reviewCount = 0;
-    }
-
-    public void addCustomer(Customer customer) {
-        if (customerCount == customers.length) {
-            System.out.println("Error: Maximum customers reached.");
-            return;
-        }
-
-        customers[customerCount++] = customer;
-        System.out.println("Customer added: " + customer.getName());
-    }
-
-    public void addDriver(Driver driver) {
-        if (driverCount == drivers.length) {
-            System.out.println("Error: Maximum drivers reached.");
-            return;
-        }
-
-        drivers[driverCount++] = driver;
-        System.out.println("Driver added: " + driver.getName());
-    }
-
-    public void addRestaurant(Restaurant restaurant) {
-        if (restaurantCount == restaurants.length) {
-            System.out.println("Error: Maximum restaurants reached.");
-            return;
-        }
-
-        restaurants[restaurantCount++] = restaurant;
-        System.out.println("Restaurant added: " + restaurant.getName());
-    }
-
-    public void addMenuItemToRestaurant(String restaurantId, MenuItem item) {
-        Restaurant restaurant = findRestaurantById(restaurantId);
-        if (restaurant == null) {
-            System.out.println("Error: Restaurant not found.");
-            return;
-        }
-
-        restaurant.addMenuItem(item);
-        System.out.println("Item '" + item.getName() + "' added to restaurant " + restaurant.getName() + ".");
-    }
-
-    public void displayAllRestaurants() {
-        System.out.println("\n===== ALL RESTAURANTS =====");
-        for (int i = 0; i < restaurantCount; i++)
-            System.out.println(restaurants[i]);
-        System.out.println("============================\n");
-    }
-
-    public void displayRestaurantMenu(String restaurantId) {
-        Restaurant restaurant = findRestaurantById(restaurantId);
-        if (restaurant == null) {
-            System.out.println("Error: Restaurant not found.");
-            return;
-        }
-
-        System.out.println("\n===== MENU: " + restaurant.getName() + " =====");
-        MenuItem[] menu = restaurant.getMenu();
-        for (int i = 0; i < restaurant.getMenuCount(); i++)
-            System.out.println("  " + menu[i]);
-        System.out.println("==========================\n");
+        this.userService = userService;
+        this.restaurantService = restaurantService;
     }
 
     public void placeOrder(Customer customer, Address address) {
@@ -156,7 +86,7 @@ public class FoodDeliveryService {
             return;
         }
 
-        Driver driver = findDriverById(driverId);
+        Driver driver = userService.findDriverById(driverId);
         if (driver == null) {
             System.out.println("Error: Driver not found.");
             return;
@@ -168,12 +98,9 @@ public class FoodDeliveryService {
         }
 
         order.setDriver(driver);
-        if (order.updateStatus(OrderStatus.DRIVER_FOUND)) {
-            driver.setAvailable(false);
-            System.out.println("Driver " + driver.getName() + " assigned to order " + order.getId() + ".");
-        }
-        else
-            System.out.println("Error: Cannot assign driver to order " + order.getId() + ".");
+        order.updateStatus(OrderStatus.ACCEPTED);
+        driver.setAvailable(false);
+        System.out.println("Driver " + driver.getName() + " assigned to order " + order.getId() + ".");
     }
 
     public void startOrderPreparation(String orderId) {
@@ -183,7 +110,7 @@ public class FoodDeliveryService {
             return;
         }
 
-        if (order.getStatus() != OrderStatus.ACCEPTED && order.getStatus() != OrderStatus.DRIVER_FOUND) {
+        if (order.getStatus() != OrderStatus.ACCEPTED) {
             System.out.println("Error: Only accepted or driver-found orders can start preparation.");
             return;
         }
@@ -309,32 +236,6 @@ public class FoodDeliveryService {
         System.out.println("Review submitted for order " + orderId + ": " + rating + " stars - " + comment);
     }
 
-    public void displayRestaurantReviews(String restaurantId) {
-        Restaurant restaurant = findRestaurantById(restaurantId);
-        if (restaurant == null) {
-            System.out.println("Error: Restaurant not found.");
-            return;
-        }
-
-        System.out.println("\n===== REVIEWS FOR " + restaurant.getName() + " =====");
-        int count = 0;
-        double totalRating = 0;
-
-        for (int i = 0; i < reviewCount; i++)
-            if (reviews[i].getOrder().getRestaurant().getId().equals(restaurantId)) {
-                System.out.println(reviews[i].getCustomer().getName() + ": " + reviews[i].getRating() + "/5 stars - " + reviews[i].getComment());
-                totalRating += reviews[i].getRating();
-                count++;
-            }
-
-        if (count > 0)
-            System.out.println("Average Rating: " + String.format("%.1f", totalRating / count) + "/5");
-        else
-            System.out.println("No reviews yet.");
-        
-        System.out.println("==================================\n");
-    }
-
     public void getCustomerOrderHistory(String customerId) {
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd.MM.yyyy, HH:mm");
 
@@ -368,17 +269,42 @@ public class FoodDeliveryService {
         }
     }
 
+    public void displayRestaurantReviews(String restaurantId) {
+        Restaurant restaurant = restaurantService.findRestaurantById(restaurantId);
+        if (restaurant == null) {
+            System.out.println("Error: Restaurant not found.");
+            return;
+        }
+
+        System.out.println("\n===== REVIEWS FOR " + restaurant.getName() + " =====");
+        int count = 0;
+        double totalRating = 0;
+
+        for (int i = 0; i < reviewCount; i++)
+            if (reviews[i].getOrder().getRestaurant().getId().equals(restaurantId)) {
+                System.out.println(reviews[i].getCustomer().getName() + ": " + reviews[i].getRating() + "/5 stars - " + reviews[i].getComment());
+                totalRating += reviews[i].getRating();
+                count++;
+            }
+
+        if (count > 0)
+            System.out.println("Average Rating: " + String.format("%.1f", totalRating / count) + "/5");
+        else
+            System.out.println("No reviews yet.");
+
+        System.out.println("==================================\n");
+    }
+
     private void assignDriversToPendingOrders() {
         for (int i = 0; i < orderCount; i++) {
             Order order = orders[i];
 
             if ((order.getStatus() == OrderStatus.ACCEPTED || order.getStatus() == OrderStatus.PREPARING) && order.getDriver() == null) {
-                Driver driver = findAvailableDriver();
+                Driver driver = userService.findAvailableDriver();
                 if (driver == null)
                     break;
 
                 order.setDriver(driver);
-                order.updateStatus(OrderStatus.DRIVER_FOUND);
                 driver.setAvailable(false);
 
                 System.out.println("Driver " + driver.getName() + " assigned to order " + order.getId());
@@ -386,32 +312,10 @@ public class FoodDeliveryService {
         }
     }
 
-    private Restaurant findRestaurantById(String id) {
-        for (int i = 0; i < restaurantCount; i++)
-            if (restaurants[i].getId().equals(id))
-                return restaurants[i];
-        return null;
-    }
-
-    private Driver findDriverById(String id) {
-        for (int i = 0; i < driverCount; i++)
-            if (drivers[i].getId().equals(id))
-                return drivers[i];
-        return null;
-    }
-
     private Order findOrderById(String id) {
         for (int i = 0; i < orderCount; i++)
             if (orders[i].getId().equals(id))
                 return orders[i];
-        return null;
-    }
-
-    private Driver findAvailableDriver() {
-        for (int i = 0; i < driverCount; i++)
-            if (drivers[i].isAvailable())
-                return drivers[i];
-
         return null;
     }
 }

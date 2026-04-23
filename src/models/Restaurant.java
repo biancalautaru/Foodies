@@ -6,6 +6,8 @@ public class Restaurant {
     private Address address;
     private MenuItem[] menu;
     private int menuCount;
+    private double stars;
+    private int reviewCount;
 
     public Restaurant(String id, String name, Address address, int maxItemCapacity) {
         this.id = id;
@@ -13,6 +15,8 @@ public class Restaurant {
         this.address = address;
         this.menu = new MenuItem[maxItemCapacity];
         this.menuCount = 0;
+        this.stars = 0.0;
+        this.reviewCount = 0;
     }
 
     public String getId() {
@@ -35,9 +39,27 @@ public class Restaurant {
         return menuCount;
     }
 
+    public double getStars() {
+        return stars;
+    }
+
+    public void setStars(double stars) {
+        this.stars = stars;
+    }
+
+    public int getReviewCount() {
+        return reviewCount;
+    }
+
+    public void setReviewCount(int reviewCount) {
+        this.reviewCount = reviewCount;
+    }
+
     @Override
     public String toString() {
-        return id + ": " + name;
+        if (reviewCount == 0)
+            return id + ": " + name + " (No reviews)";
+        return id + ": " + name + " (" + String.format("%.2f", stars) + " stars)";
     }
 
     public void addMenuItem(MenuItem menuItem) {

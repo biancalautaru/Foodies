@@ -1,21 +1,23 @@
 import models.*;
-import service.FoodDeliveryService;
+import service.*;
 
 public class Main {
     public static void main(String[] args) {
-        FoodDeliveryService service = new FoodDeliveryService(10, 10, 20);
+        UserService userService = new UserService(10);
+        RestaurantService restaurantService = new RestaurantService(10);
+        OrderService orderService = new OrderService(20, userService, restaurantService);
 
         System.out.println("--- ADDING CUSTOMERS ---");
         Customer customer1 = new Customer("C1", "John Doe", "john@email.com", "555-1234", 5, 20);
         Customer customer2 = new Customer("C2", "Jane Smith", "jane@email.com", "555-5678", 5, 20);
-        service.addCustomer(customer1);
-        service.addCustomer(customer2);
+        userService.addCustomer(customer1);
+        userService.addCustomer(customer2);
 
         System.out.println("\n--- ADDING DRIVERS ---");
         Driver driver1 = new Driver("D1", "Mike Johnson", "mike@email.com", "555-9999", VehicleType.SCOOTER);
         Driver driver2 = new Driver("D2", "Sarah Williams", "sarah@email.com", "555-8888", VehicleType.CAR);
-        service.addDriver(driver1);
-        service.addDriver(driver2);
+        userService.addDriver(driver1);
+        userService.addDriver(driver2);
 
         System.out.println("\n--- ADDING RESTAURANTS ---");
         Address pizzaPlaceAddr = new Address("123 Main St", "101", "New York");
@@ -23,8 +25,8 @@ public class Main {
 
         Restaurant pizzaPlace = new Restaurant("R1", "Pizza Paradise", pizzaPlaceAddr, 10);
         Restaurant burgerPlace = new Restaurant("R2", "Burger Haven", burgerPlaceAddr, 10);
-        service.addRestaurant(pizzaPlace);
-        service.addRestaurant(burgerPlace);
+        restaurantService.addRestaurant(pizzaPlace);
+        restaurantService.addRestaurant(burgerPlace);
 
         System.out.println("\n--- ADDING MENU ITEMS ---");
         MenuItem pizza1 = new MenuItem("M1", "Margherita Pizza", "Fresh mozzarella and basil", 14.99);
@@ -35,22 +37,22 @@ public class Main {
         MenuItem burger2 = new MenuItem("M5", "Deluxe Burger", "Double beef with cheese and bacon", 15.99);
         MenuItem fries = new MenuItem("M6", "French Fries", "Crispy golden fries", 4.99);
 
-        service.addMenuItemToRestaurant("R1", pizza1);
-        service.addMenuItemToRestaurant("R1", pizza2);
-        service.addMenuItemToRestaurant("R1", pizza3);
+        restaurantService.addMenuItemToRestaurant("R1", pizza1);
+        restaurantService.addMenuItemToRestaurant("R1", pizza2);
+        restaurantService.addMenuItemToRestaurant("R1", pizza3);
 
-        service.addMenuItemToRestaurant("R2", burger1);
-        service.addMenuItemToRestaurant("R2", burger2);
-        service.addMenuItemToRestaurant("R2", fries);
+        restaurantService.addMenuItemToRestaurant("R2", burger1);
+        restaurantService.addMenuItemToRestaurant("R2", burger2);
+        restaurantService.addMenuItemToRestaurant("R2", fries);
 
         System.out.println("\n--- BROWSING RESTAURANTS ---");
-        service.displayAllRestaurants();
+        restaurantService.displayAllRestaurants();
 
         System.out.println("--- BROWSING MENU: Pizza Paradise ---");
-        service.displayRestaurantMenu("R1");
+        restaurantService.displayRestaurantMenu("R1");
 
         System.out.println("--- BROWSING MENU: Burger Haven ---");
-        service.displayRestaurantMenu("R2");
+        restaurantService.displayRestaurantMenu("R2");
 
         System.out.println("\n--- CUSTOMER 1 PLACING ORDER ---");
         Cart cart1 = customer1.getCart();
@@ -60,7 +62,7 @@ public class Main {
 
         Address deliveryAddr1 = new Address("789 Elm St", "500", "New York");
         customer1.addAddress(deliveryAddr1);
-        service.placeOrder(customer1, deliveryAddr1);
+        orderService.placeOrder(customer1, deliveryAddr1);
 
         System.out.println("\n--- CUSTOMER 2 PLACING ORDER ---");
         Cart cart2 = customer2.getCart();
@@ -70,86 +72,64 @@ public class Main {
 
         Address deliveryAddr2 = new Address("321 Pine Rd", "100", "New York");
         customer2.addAddress(deliveryAddr2);
-        service.placeOrder(customer2, deliveryAddr2);
+        orderService.placeOrder(customer2, deliveryAddr2);
 
         System.out.println("\n--- ASSIGNING DRIVERS AND PROCESSING ORDERS ---");
-        service.acceptOrder("#1");
-        service.assignDriverToOrder("#1", "D1");
+        orderService.acceptOrder("#1");
+        orderService.assignDriverToOrder("#1", "D1");
 
-        service.acceptOrder("#2");
-        service.assignDriverToOrder("#2", "D2");
-
-        System.out.println("\n--- VIEWING ORDER DETAILS ---");
-        service.displayOrderDetails("#1");
-        service.displayOrderDetails("#2");
+        orderService.acceptOrder("#2");
+        orderService.assignDriverToOrder("#2", "D2");
 
         System.out.println("\n--- UPDATING ORDER STATUS: Order #1 ---");
-        service.startOrderPreparation("#1");
-        service.markOrderReady("#1");
-        service.pickupOrder("#1");
-        service.deliverOrder("#1");
+        orderService.startOrderPreparation("#1");
+        orderService.markOrderReady("#1");
+        orderService.pickupOrder("#1");
+        orderService.deliverOrder("#1");
 
         System.out.println("\n--- UPDATING ORDER STATUS: Order #2 ---");
-        service.startOrderPreparation("#2");
-        service.markOrderReady("#2");
-        service.pickupOrder("#2");
-        service.deliverOrder("#2");
-
-        System.out.println("\n--- SUBMITTING REVIEWS ---");
-        service.submitReview("#1", 5, "Excellent pizza! Fresh ingredients and fast delivery.");
-        service.submitReview("#2", 4, "Great burgers, but fries were a bit cold.");
-
-        System.out.println("\n--- VIEWING RESTAURANT REVIEWS ---");
-        service.displayRestaurantReviews("R1");
-        service.displayRestaurantReviews("R2");
-
-        System.out.println("--- VIEWING CUSTOMER ORDER HISTORY ---");
-        service.getCustomerOrderHistory("C1");
-        service.getCustomerOrderHistory("C2");
+        orderService.startOrderPreparation("#2");
+        orderService.markOrderReady("#2");
+        orderService.pickupOrder("#2");
+        orderService.deliverOrder("#2");
 
         System.out.println("\n--- TESTING CANCELLATION WITH FEES ---");
         Cart cart3 = customer1.getCart();
         cart3.addItem(pizza1);
         Address deliveryAddr3 = new Address("999 Test St", "777", "New York");
         customer1.addAddress(deliveryAddr3);
-        service.placeOrder(customer1, deliveryAddr3);
+        orderService.placeOrder(customer1, deliveryAddr3);
 
-        service.acceptOrder("#3");
-        service.assignDriverToOrder("#3", "D1");
-        System.out.println("Cancelling order #3 after driver found (should charge 2.50 lei fee):");
-        service.cancelOrder("#3");
+        orderService.acceptOrder("#3");
+        orderService.assignDriverToOrder("#3", "D1");
+        System.out.println("Cancelling order #3 after driver found (should charge 25.00 lei fee):");
+        orderService.cancelOrder("#3");
 
         System.out.println("\n--- TESTING ERROR SCENARIOS ---");
 
         System.out.println("Attempting to place order with empty cart:");
-        service.placeOrder(new Customer("C3", "Empty Cart User", "test@email.com", "555-0000", 5, 20), deliveryAddr1);
+        orderService.placeOrder(new Customer("C3", "Empty Cart User", "test@email.com", "555-0000", 5, 20), deliveryAddr1);
 
         System.out.println("\nAttempting to place order with mismatched delivery city:");
         Cart testCart = new Customer("C3", "Test", "test@email.com", "555-0000", 5, 20).getCart();
         testCart.addItem(pizza1);
         Customer testCustomer = new Customer("C3", "Test", "test@email.com", "555-0000", 5, 20);
         testCustomer.addAddress(new Address("100 Far St", "999", "Los Angeles"));
-        service.placeOrder(testCustomer, new Address("100 Far St", "999", "Los Angeles"));
-
-        System.out.println("\nAttempting to submit review for pending order:");
-        service.submitReview("#1", 5, "Should not work - order already delivered");
-
-        System.out.println("\nAttempting to submit review with invalid rating:");
-        service.submitReview("#1", 10, "Rating too high");
+        orderService.placeOrder(testCustomer, new Address("100 Far St", "999", "Los Angeles"));
 
         System.out.println("\nAttempting to cancel order that's already out for delivery:");
         Cart cart4 = customer2.getCart();
         cart4.addItem(burger1);
         Address deliveryAddr4 = new Address("888 Cancel St", "666", "New York");
         customer2.addAddress(deliveryAddr4);
-        service.placeOrder(customer2, deliveryAddr4);
+        orderService.placeOrder(customer2, deliveryAddr4);
 
-        service.acceptOrder("#4");
-        service.assignDriverToOrder("#4", "D2");
-        service.startOrderPreparation("#4");
-        service.markOrderReady("#4");
-        service.pickupOrder("#4");
+        orderService.acceptOrder("#4");
+        orderService.assignDriverToOrder("#4", "D2");
+        orderService.startOrderPreparation("#4");
+        orderService.markOrderReady("#4");
+        orderService.pickupOrder("#4");
         System.out.println("Trying to cancel order out for delivery:");
-        service.cancelOrder("#4");
+        orderService.cancelOrder("#4");
     }
 }
