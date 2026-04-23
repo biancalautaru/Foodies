@@ -14,7 +14,10 @@ public class Order {
     private int itemsCount;
     private OrderStatus status;
     private Review review;
-    private static final double DELIVERY_FEE = 5.99;
+    private LocalDateTime statusChangeTime;
+    private double cancellationFee;
+    private static final double DELIVERY_FEE = 6;
+    private static final double CANCELLATION_FEE = 25;
 
     public Order(String id, Customer customer, Restaurant restaurant, Address deliveryAddress, int maxItems) {
         this.id = id;
@@ -25,7 +28,9 @@ public class Order {
         this.items = new MenuItem[maxItems];
         this.itemsCount = 0;
         this.status = OrderStatus.PENDING;
+        this.statusChangeTime = LocalDateTime.now();
         this.review = null;
+        this.cancellationFee = 0;
     }
 
     public String getId() {
@@ -52,20 +57,67 @@ public class Order {
         this.driver = driver;
     }
 
-    public MenuItem[] getItems() {
-        return items;
-    }
-
-    public int getItemsCount() {
-        return itemsCount;
-    }
-
     public OrderStatus getStatus() {
         return status;
     }
 
     public void setStatus(OrderStatus status) {
         this.status = status;
+    }
+
+    public boolean updateStatus(OrderStatus newStatus) {
+        if (isValidStatusTransition(this.status, newStatus)) {
+            this.status = newStatus;
+            this.statusChangeTime = LocalDateTime.now();
+            return true;
+        }
+        return false;
+    }
+
+    public boolean cancelOrder() {
+        if (this.status == OrderStatus.OUT_FOR_DELIVERY) {
+            return false;
+        }
+
+        if (this.status == OrderStatus.PREPARING || this.status == OrderStatus.DRIVER_FOUND || this.status == OrderStatus.READY_FOR_PICKUP) {
+            this.cancellationFee = CANCELLATION_FEE;
+        }
+
+        this.status = OrderStatus.CANCELLED;
+        this.statusChangeTime = LocalDateTime.now();
+        return true;
+    }
+
+    private boolean isValidStatusTransition(OrderStatus from, OrderStatus to) {
+        if (from == to) return false;
+        if (from == OrderStatus.CANCELLED || to == OrderStatus.CANCELLED) return false;
+
+        switch (from) {
+            case PENDING:
+                return to == OrderStatus.ACCEPTED;
+            case ACCEPTED:
+                return to == OrderStatus.DRIVER_FOUND || to == OrderStatus.PREPARING;
+            case DRIVER_FOUND:
+                return to == OrderStatus.PREPARING;
+            case PREPARING:
+                return to == OrderStatus.READY_FOR_PICKUP;
+            case READY_FOR_PICKUP:
+                return to == OrderStatus.OUT_FOR_DELIVERY;
+            case OUT_FOR_DELIVERY:
+                return to == OrderStatus.DELIVERED;
+            case DELIVERED:
+                return false;
+            default:
+                return false;
+        }
+    }
+
+    public double getCancellationFee() {
+        return cancellationFee;
+    }
+
+    public LocalDateTime getStatusChangeTime() {
+        return statusChangeTime;
     }
 
     public Review getReview() {
@@ -113,12 +165,12 @@ public class Order {
 
         System.out.println("\n--- Items ---");
         for (int i = 0; i < itemsCount; i++)
-            System.out.println(items[i].getName() + " - $" + String.format("%.2f", items[i].getPrice()));
+            System.out.println(items[i].getName() + " - " + String.format("%.2f", items[i].getPrice()) + " lei");
         
         System.out.println("\n--- Pricing ---");
-        System.out.println("Subtotal: $" + String.format("%.2f", getSubtotal()));
-        System.out.println("Delivery Fee: $" + String.format("%.2f", getDeliveryFee()));
-        System.out.println("TOTAL: $" + String.format("%.2f", getTotal()));
+        System.out.println("Subtotal: " + String.format("%.2f", getSubtotal()) + " lei");
+        System.out.println("Delivery Fee: " + String.format("%.2f", getDeliveryFee()) + " lei");
+        System.out.println("TOTAL: " + String.format("%.2f", getTotal()) + " lei");
 
         if (driver != null)
             System.out.println("Driver: " + driver.getName());

@@ -72,26 +72,32 @@ public class Main {
         customer2.addAddress(deliveryAddr2);
         service.placeOrder(customer2, deliveryAddr2);
 
-        System.out.println("\n--- ASSIGNING DRIVERS ---");
-        service.assignDriverToOrder("1", "D1");
-        service.assignDriverToOrder("2", "D2");
+        System.out.println("\n--- ASSIGNING DRIVERS AND PROCESSING ORDERS ---");
+        service.acceptOrder("#1");
+        service.assignDriverToOrder("#1", "D1");
+
+        service.acceptOrder("#2");
+        service.assignDriverToOrder("#2", "D2");
 
         System.out.println("\n--- VIEWING ORDER DETAILS ---");
-        service.displayOrderDetails("1");
-        service.displayOrderDetails("2");
+        service.displayOrderDetails("#1");
+        service.displayOrderDetails("#2");
 
-        System.out.println("\n--- UPDATING ORDER STATUS ---");
-        service.updateOrderStatus("1", OrderStatus.PREPARING);
-        service.updateOrderStatus("1", OrderStatus.OUT_FOR_DELIVERY);
-        service.updateOrderStatus("1", OrderStatus.DELIVERED);
+        System.out.println("\n--- UPDATING ORDER STATUS: Order #1 ---");
+        service.startOrderPreparation("#1");
+        service.markOrderReady("#1");
+        service.pickupOrder("#1");
+        service.deliverOrder("#1");
 
-        service.updateOrderStatus("2", OrderStatus.PREPARING);
-        service.updateOrderStatus("2", OrderStatus.OUT_FOR_DELIVERY);
-        service.updateOrderStatus("2", OrderStatus.DELIVERED);
+        System.out.println("\n--- UPDATING ORDER STATUS: Order #2 ---");
+        service.startOrderPreparation("#2");
+        service.markOrderReady("#2");
+        service.pickupOrder("#2");
+        service.deliverOrder("#2");
 
         System.out.println("\n--- SUBMITTING REVIEWS ---");
-        service.submitReview("1", 5, "Excellent pizza! Fresh ingredients and fast delivery.");
-        service.submitReview("2", 4, "Great burgers, but fries were a bit cold.");
+        service.submitReview("#1", 5, "Excellent pizza! Fresh ingredients and fast delivery.");
+        service.submitReview("#2", 4, "Great burgers, but fries were a bit cold.");
 
         System.out.println("\n--- VIEWING RESTAURANT REVIEWS ---");
         service.displayRestaurantReviews("R1");
@@ -100,6 +106,18 @@ public class Main {
         System.out.println("--- VIEWING CUSTOMER ORDER HISTORY ---");
         service.getCustomerOrderHistory("C1");
         service.getCustomerOrderHistory("C2");
+
+        System.out.println("\n--- TESTING CANCELLATION WITH FEES ---");
+        Cart cart3 = customer1.getCart();
+        cart3.addItem(pizza1);
+        Address deliveryAddr3 = new Address("999 Test St", "777", "New York");
+        customer1.addAddress(deliveryAddr3);
+        service.placeOrder(customer1, deliveryAddr3);
+
+        service.acceptOrder("#3");
+        service.assignDriverToOrder("#3", "D1");
+        System.out.println("Cancelling order #3 after driver found (should charge 2.50 lei fee):");
+        service.cancelOrder("#3");
 
         System.out.println("\n--- TESTING ERROR SCENARIOS ---");
 
@@ -114,9 +132,24 @@ public class Main {
         service.placeOrder(testCustomer, new Address("100 Far St", "999", "Los Angeles"));
 
         System.out.println("\nAttempting to submit review for pending order:");
-        service.submitReview("1", 5, "Should not work - order already delivered");
+        service.submitReview("#1", 5, "Should not work - order already delivered");
 
         System.out.println("\nAttempting to submit review with invalid rating:");
-        service.submitReview("1", 10, "Rating too high");
+        service.submitReview("#1", 10, "Rating too high");
+
+        System.out.println("\nAttempting to cancel order that's already out for delivery:");
+        Cart cart4 = customer2.getCart();
+        cart4.addItem(burger1);
+        Address deliveryAddr4 = new Address("888 Cancel St", "666", "New York");
+        customer2.addAddress(deliveryAddr4);
+        service.placeOrder(customer2, deliveryAddr4);
+
+        service.acceptOrder("#4");
+        service.assignDriverToOrder("#4", "D2");
+        service.startOrderPreparation("#4");
+        service.markOrderReady("#4");
+        service.pickupOrder("#4");
+        System.out.println("Trying to cancel order out for delivery:");
+        service.cancelOrder("#4");
     }
 }

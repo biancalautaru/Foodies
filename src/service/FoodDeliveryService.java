@@ -18,16 +18,12 @@ public class FoodDeliveryService {
     public FoodDeliveryService(int maxUsers, int maxRestaurants, int maxOrders) {
         this.customers = new Customer[maxUsers];
         this.customerCount = 0;
-
         this.drivers = new Driver[maxUsers];
         this.driverCount = 0;
-
         this.restaurants = new Restaurant[maxUsers];
         this.restaurantCount = 0;
-
         this.orders = new Order[maxOrders];
         this.orderCount = 0;
-
         this.reviews = new Review[maxOrders * 2];
         this.reviewCount = 0;
     }
@@ -115,26 +111,48 @@ public class FoodDeliveryService {
             return;
         }
 
-        Order order = new Order(String.valueOf(orderCount + 1), customer, restaurant, address, cart.getItemsCount());
+        Order order = new Order("#" + String.valueOf(orderCount + 1), customer, restaurant, address, cart.getItemsCount());
 
         MenuItem[] cartItems = cart.getItems();
-        for (int i = 0; i < cart.getItemsCount(); i++) {
-            if (cartItems[i] != null) {
-                order.addItem(cartItems[i]);
-            }
-        }
+        for (int i = 0; i < cart.getItemsCount(); i++)
+            order.addItem(cartItems[i]);
 
         orders[orderCount++] = order;
-        System.out.println("\nOrder #" + order.getId() + " placed successfully.");
+        System.out.println("\nOrder " + order.getId() + " placed successfully.");
         order.printOrderSummary();
 
         cart.clearCart();
+    }
+
+    public void acceptOrder(String orderId) {
+        Order order = findOrderById(orderId);
+        if (order == null) {
+            System.out.println("Error: Order not found.");
+            return;
+        }
+
+        if (order.getStatus() != OrderStatus.PENDING) {
+            System.out.println("Error: Only pending orders can be accepted.");
+            return;
+        }
+
+        if (order.updateStatus(OrderStatus.ACCEPTED)) {
+            System.out.println("Order " + order.getId() + " accepted by restaurant " + order.getRestaurant().getName() + ".");
+            assignDriversToPendingOrders();
+        } else {
+            System.out.println("Error: Cannot accept order " + order.getId() + ".");
+        }
     }
 
     public void assignDriverToOrder(String orderId, String driverId) {
         Order order = findOrderById(orderId);
         if (order == null) {
             System.out.println("Error: Order not found.");
+            return;
+        }
+
+        if (order.getStatus() != OrderStatus.ACCEPTED && order.getStatus() != OrderStatus.PREPARING) {
+            System.out.println("Error: Driver can only be assigned to accepted or preparing orders.");
             return;
         }
 
@@ -150,27 +168,120 @@ public class FoodDeliveryService {
         }
 
         order.setDriver(driver);
-        order.setStatus(OrderStatus.ACCEPTED);
-        driver.setAvailable(false);
-        System.out.println("Driver " + driver.getName() + " assigned to order #" + order.getId() + ".");
+        if (order.updateStatus(OrderStatus.DRIVER_FOUND)) {
+            driver.setAvailable(false);
+            System.out.println("Driver " + driver.getName() + " assigned to order " + order.getId() + ".");
+        } else {
+            System.out.println("Error: Cannot assign driver to order " + order.getId() + ".");
+        }
     }
 
-    public void updateOrderStatus(String orderId, OrderStatus newStatus) {
+    public void startOrderPreparation(String orderId) {
         Order order = findOrderById(orderId);
         if (order == null) {
             System.out.println("Error: Order not found.");
             return;
         }
 
-        order.setStatus(newStatus);
-        System.out.println("Order #" + order.getId() + " status updated to " + newStatus + ".");
+        if (order.getStatus() != OrderStatus.ACCEPTED && order.getStatus() != OrderStatus.DRIVER_FOUND) {
+            System.out.println("Error: Only accepted or driver-found orders can start preparation.");
+            return;
+        }
 
-        if (newStatus == OrderStatus.DELIVERED) {
+        if (order.updateStatus(OrderStatus.PREPARING)) {
+            System.out.println("Order " + order.getId() + " is now being prepared.");
+        } else {
+            System.out.println("Error: Cannot start preparation for order " + order.getId() + ".");
+        }
+    }
+
+    public void markOrderReady(String orderId) {
+        Order order = findOrderById(orderId);
+        if (order == null) {
+            System.out.println("Error: Order not found.");
+            return;
+        }
+
+        if (order.getStatus() != OrderStatus.PREPARING) {
+            System.out.println("Error: Only preparing orders can be marked as ready.");
+            return;
+        }
+
+        if (order.updateStatus(OrderStatus.READY_FOR_PICKUP)) {
+            System.out.println("Order " + order.getId() + " is ready for pickup.");
+        } else {
+            System.out.println("Error: Cannot mark order " + order.getId() + " as ready.");
+        }
+    }
+
+    public void pickupOrder(String orderId) {
+        Order order = findOrderById(orderId);
+        if (order == null) {
+            System.out.println("Error: Order not found.");
+            return;
+        }
+
+        if (order.getStatus() != OrderStatus.READY_FOR_PICKUP) {
+            System.out.println("Error: Only ready orders can be picked up.");
+            return;
+        }
+
+        if (order.getDriver() == null) {
+            System.out.println("Error: Order has no assigned driver.");
+            return;
+        }
+
+        if (order.updateStatus(OrderStatus.OUT_FOR_DELIVERY)) {
+            System.out.println("Order " + order.getId() + " is now out for delivery with driver " + order.getDriver().getName() + ".");
+        } else {
+            System.out.println("Error: Cannot pick up order " + order.getId() + ".");
+        }
+    }
+
+    public void deliverOrder(String orderId) {
+        Order order = findOrderById(orderId);
+        if (order == null) {
+            System.out.println("Error: Order not found.");
+            return;
+        }
+
+        if (order.getStatus() != OrderStatus.OUT_FOR_DELIVERY) {
+            System.out.println("Error: Only orders out for delivery can be delivered.");
+            return;
+        }
+
+        if (order.updateStatus(OrderStatus.DELIVERED)) {
             Driver driver = order.getDriver();
-            if (driver != null)
+            if (driver != null) {
                 driver.setAvailable(true);
-
+            }
+            System.out.println("Order " + order.getId() + " delivered successfully.");
             assignDriversToPendingOrders();
+        } else {
+            System.out.println("Error: Cannot deliver order " + order.getId() + ".");
+        }
+    }
+
+    public void cancelOrder(String orderId) {
+        Order order = findOrderById(orderId);
+        if (order == null) {
+            System.out.println("Error: Order not found.");
+            return;
+        }
+
+        if (order.cancelOrder()) {
+            Driver driver = order.getDriver();
+            if (driver != null) {
+                driver.setAvailable(true);
+            }
+
+            String message = "Order " + order.getId() + " cancelled.";
+            if (order.getCancellationFee() > 0) {
+                message += " Cancellation fee: " + String.format("%.2f", order.getCancellationFee()) + " lei.";
+            }
+            System.out.println(message);
+        } else {
+            System.out.println("Error: Cannot cancel order " + order.getId() + " (out for delivery orders cannot be cancelled).");
         }
     }
 
@@ -199,7 +310,7 @@ public class FoodDeliveryService {
         Review review = new Review(String.valueOf(reviewCount + 1), order.getCustomer(), order, rating, comment);
         order.setReview(review);
         reviews[reviewCount++] = review;
-        System.out.println("Review submitted for order #" + orderId + ": " + rating + " stars - " + comment);
+        System.out.println("Review submitted for order " + orderId + ": " + rating + " stars - " + comment);
     }
 
     public void displayRestaurantReviews(String restaurantId) {
@@ -215,17 +326,33 @@ public class FoodDeliveryService {
 
         for (int i = 0; i < reviewCount; i++)
             if (reviews[i].getOrder().getRestaurant().getId().equals(restaurantId)) {
-                System.out.println("  " + reviews[i].getRating() + "/5 stars - " + reviews[i].getComment() + " (by " + reviews[i].getCustomer().getName() + ")");
+                System.out.println(reviews[i].getCustomer().getName() + ": " + reviews[i].getRating() + "/5 stars - " + reviews[i].getComment());
                 totalRating += reviews[i].getRating();
                 count++;
             }
 
         if (count > 0)
-            System.out.println("  Average Rating: " + String.format("%.1f", totalRating / count) + "/5");
+            System.out.println("Average Rating: " + String.format("%.1f", totalRating / count) + "/5");
         else
-            System.out.println("  No reviews yet.");
+            System.out.println("No reviews yet.");
         
         System.out.println("==================================\n");
+    }
+
+    public void getCustomerOrderHistory(String customerId) {
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd.MM.yyyy, HH:mm");
+
+        System.out.println("\n===== ORDER HISTORY =====");
+        boolean foundOrders = false;
+        for (int i = 0; i < orderCount; i++)
+            if (orders[i].getCustomer().getId().equals(customerId)) {
+                System.out.println("Order " + orders[i].getId() + " | " + orders[i].getDate().format(formatter) +  " | " + orders[i].getRestaurant().getName() +  " | " + orders[i].getStatus() + " | " + String.format("%.2f", orders[i].getTotal()) + " lei");
+                foundOrders = true;
+            }
+
+        if (!foundOrders)
+            System.out.println("No orders found.");
+        System.out.println("=========================\n");
     }
 
     public void displayOrderDetails(String orderId) {
@@ -240,41 +367,22 @@ public class FoodDeliveryService {
         if (order.getReview() == null)
             System.out.println("No review yet.");
         else {
-            System.out.println("Review: " + order.getReview().getRating() + "/5 stars");
+            System.out.println("Rating: " + order.getReview().getRating() + "/5 stars");
             System.out.println("Comment: " + order.getReview().getComment());
         }
-    }
-
-    public void getCustomerOrderHistory(String customerId) {
-        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd.MM.yyyy, HH:mm");
-
-        System.out.println("\n===== ORDER HISTORY =====");
-        boolean foundOrders = false;
-        for (int i = 0; i < orderCount; i++)
-            if (orders[i].getCustomer().getId().equals(customerId)) {
-                System.out.println("  Order #" + orders[i].getId() + " | " + orders[i].getDate().format(formatter) +
-                        " | Restaurant: " + orders[i].getRestaurant().getName() +
-                        " | Status: " + orders[i].getStatus() +
-                        " | Total: $" + String.format("%.2f", orders[i].getTotal()));
-                foundOrders = true;
-            }
-
-        if (!foundOrders)
-            System.out.println("  No orders found.");
-        System.out.println("=========================\n");
     }
 
     private void assignDriversToPendingOrders() {
         for (int i = 0; i < orderCount; i++) {
             Order order = orders[i];
 
-            if (order.getStatus() == OrderStatus.PENDING && order.getDriver() == null) {
+            if ((order.getStatus() == OrderStatus.ACCEPTED || order.getStatus() == OrderStatus.PREPARING) && order.getDriver() == null) {
                 Driver driver = findAvailableDriver();
                 if (driver == null)
                     break;
 
                 order.setDriver(driver);
-                order.setStatus(OrderStatus.ACCEPTED);
+                order.updateStatus(OrderStatus.DRIVER_FOUND);
                 driver.setAvailable(false);
 
                 System.out.println("Driver " + driver.getName() + " assigned to order " + order.getId());

@@ -15,10 +15,6 @@ public class Review {
         this.comment = comment;
     }
 
-    public String getId() {
-        return id;
-    }
-
     public Customer getCustomer() {
         return customer;
     }
@@ -37,11 +33,6 @@ public class Review {
 
     @Override
     public String toString() {
-        return "Review{" +
-                "customer='" + customer.getName() + '\'' +
-                ", rating=" + rating +
-                ", comment='" + comment + '\'' +
-                '}';
+        return customer.getName() + ": " + rating + "/5 stars - " + comment;
     }
 }
-
