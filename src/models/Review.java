@@ -1,11 +1,15 @@
 package models;
 
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+
 public class Review {
     private String id;
     private Customer customer;
     private Order order;
     private int rating;
     private String comment;
+    private LocalDateTime date;
 
     public Review(String id, Customer customer, Order order, int rating, String comment) {
         this.id = id;
@@ -13,6 +17,7 @@ public class Review {
         this.order = order;
         this.rating = rating;
         this.comment = comment;
+        this.date = LocalDateTime.now();
     }
 
     public Customer getCustomer() {
@@ -33,6 +38,7 @@ public class Review {
 
     @Override
     public String toString() {
-        return customer.getName() + ": " + rating + "/5 stars - " + comment;
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd.MM.yyyy, HH:mm");
+        return customer.getName() + " [" + date.format(formatter) + "]: " + rating + "/5 stars - " + comment;
     }
 }

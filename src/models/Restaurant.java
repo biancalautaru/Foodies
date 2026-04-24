@@ -59,7 +59,7 @@ public class Restaurant {
     public String toString() {
         if (reviewCount == 0)
             return id + ": " + name + " (No reviews)";
-        return id + ": " + name + " (" + String.format("%.2f", stars) + " stars)";
+        return id + ": " + name + " (" + String.format("%.2f", stars) + "/5 stars from " + reviewCount + " reviews)";
     }
 
     public void addMenuItem(MenuItem menuItem) {

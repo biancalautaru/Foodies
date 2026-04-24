@@ -35,13 +35,6 @@ public class UserService {
         System.out.println("Driver added: " + driver.getName());
     }
 
-    public Driver findDriverById(String id) {
-        for (int i = 0; i < driverCount; i++)
-            if (drivers[i].getId().equals(id))
-                return drivers[i];
-        return null;
-    }
-
     public Driver findAvailableDriver() {
         for (int i = 0; i < driverCount; i++)
             if (drivers[i].isAvailable())

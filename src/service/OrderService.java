@@ -74,35 +74,6 @@ public class OrderService {
             System.out.println("Error: Cannot accept order " + order.getId() + ".");
     }
 
-    public void assignDriverToOrder(String orderId, String driverId) {
-        Order order = findOrderById(orderId);
-        if (order == null) {
-            System.out.println("Error: Order not found.");
-            return;
-        }
-
-        if (order.getStatus() != OrderStatus.ACCEPTED && order.getStatus() != OrderStatus.PREPARING) {
-            System.out.println("Error: Driver can only be assigned to accepted or preparing orders.");
-            return;
-        }
-
-        Driver driver = userService.findDriverById(driverId);
-        if (driver == null) {
-            System.out.println("Error: Driver not found.");
-            return;
-        }
-
-        if (!driver.isAvailable()) {
-            System.out.println("Error: Driver is not available.");
-            return;
-        }
-
-        order.setDriver(driver);
-        order.updateStatus(OrderStatus.ACCEPTED);
-        driver.setAvailable(false);
-        System.out.println("Driver " + driver.getName() + " assigned to order " + order.getId() + ".");
-    }
-
     public void startOrderPreparation(String orderId) {
         Order order = findOrderById(orderId);
         if (order == null) {
@@ -110,8 +81,8 @@ public class OrderService {
             return;
         }
 
-        if (order.getStatus() != OrderStatus.ACCEPTED) {
-            System.out.println("Error: Only accepted or driver-found orders can start preparation.");
+        if (order.getStatus() != OrderStatus.ACCEPTED && order.getStatus() != OrderStatus.DRIVER_ASSIGNED) {
+            System.out.println("Error: Only accepted or driver-assigned orders can start preparation.");
             return;
         }
 
@@ -220,6 +191,11 @@ public class OrderService {
             return;
         }
 
+        if (order.getReview() != null) {
+            System.out.println("Error: Order " + orderId + " has already been reviewed.");
+            return;
+        }
+
         if (rating < 1 || rating > 5) {
             System.out.println("Error: Rating must be between 1 and 5.");
             return;
@@ -233,7 +209,14 @@ public class OrderService {
         Review review = new Review(String.valueOf(reviewCount + 1), order.getCustomer(), order, rating, comment);
         order.setReview(review);
         reviews[reviewCount++] = review;
-        System.out.println("Review submitted for order " + orderId + ": " + rating + " stars - " + comment);
+
+        Restaurant restaurant = order.getRestaurant();
+        int newCount = restaurant.getReviewCount() + 1;
+        double newStars = (restaurant.getStars() * restaurant.getReviewCount() + rating) / newCount;
+        restaurant.setReviewCount(newCount);
+        restaurant.setStars(newStars);
+
+        System.out.println("Review submitted for order " + orderId + " (" + restaurant.getName() + "): " + rating + "/5 stars - " + comment);
     }
 
     public void getCustomerOrderHistory(String customerId) {
@@ -299,15 +282,16 @@ public class OrderService {
         for (int i = 0; i < orderCount; i++) {
             Order order = orders[i];
 
-            if ((order.getStatus() == OrderStatus.ACCEPTED || order.getStatus() == OrderStatus.PREPARING) && order.getDriver() == null) {
+            if (order.getStatus() == OrderStatus.ACCEPTED && order.getDriver() == null) {
                 Driver driver = userService.findAvailableDriver();
                 if (driver == null)
                     break;
 
                 order.setDriver(driver);
                 driver.setAvailable(false);
+                order.updateStatus(OrderStatus.DRIVER_ASSIGNED);
 
-                System.out.println("Driver " + driver.getName() + " assigned to order " + order.getId());
+                System.out.println("Driver " + driver.getName() + " auto-assigned to order " + order.getId());
             }
         }
     }

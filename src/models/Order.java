@@ -82,7 +82,7 @@ public class Order {
         if (status == OrderStatus.OUT_FOR_DELIVERY || status == OrderStatus.DELIVERED)
             return false;
 
-        if (status == OrderStatus.PREPARING || status == OrderStatus.READY_FOR_PICKUP)
+        if (status == OrderStatus.DRIVER_ASSIGNED || status == OrderStatus.PREPARING || status == OrderStatus.READY_FOR_PICKUP)
             cancellationFee = CANCELLATION_FEE;
 
         status = OrderStatus.CANCELLED;
@@ -102,6 +102,8 @@ public class Order {
             case PENDING:
                 return newStatus == OrderStatus.ACCEPTED;
             case ACCEPTED:
+                return newStatus == OrderStatus.DRIVER_ASSIGNED || newStatus == OrderStatus.PREPARING;
+            case DRIVER_ASSIGNED:
                 return newStatus == OrderStatus.PREPARING;
             case PREPARING:
                 return newStatus == OrderStatus.READY_FOR_PICKUP;

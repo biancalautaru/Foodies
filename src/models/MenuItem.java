@@ -1,6 +1,6 @@
 package models;
 
-public class MenuItem implements Comparable<MenuItem> {
+public class MenuItem {
     private String id;
     private String name;
     private String description;
@@ -36,8 +36,4 @@ public class MenuItem implements Comparable<MenuItem> {
         return name + " - " + String.format("%.2f", price) + " lei";
     }
 
-    @Override
-    public int compareTo(MenuItem other) {
-        return Double.compare(this.price, other.price);
-    }
 }
