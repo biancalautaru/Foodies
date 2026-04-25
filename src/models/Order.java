@@ -2,6 +2,8 @@ package models;
 
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
+import java.util.List;
 
 public class Order {
     private String id;
@@ -10,8 +12,7 @@ public class Order {
     private Restaurant restaurant;
     private Address deliveryAddress;
     private Driver driver;
-    private MenuItem[] items;
-    private int itemsCount;
+    private List<MenuItem> items;
     private OrderStatus status;
     private Review review;
     private LocalDateTime statusChangeTime;
@@ -19,14 +20,13 @@ public class Order {
     private static final double DELIVERY_FEE = 6;
     private static final double CANCELLATION_FEE = 25;
 
-    public Order(String id, Customer customer, Restaurant restaurant, Address deliveryAddress, int maxItems) {
+    public Order(String id, Customer customer, Restaurant restaurant, Address deliveryAddress) {
         this.id = id;
         this.date = LocalDateTime.now();
         this.customer = customer;
         this.restaurant = restaurant;
         this.deliveryAddress = deliveryAddress;
-        this.items = new MenuItem[maxItems];
-        this.itemsCount = 0;
+        this.items = new ArrayList<>();
         this.status = OrderStatus.PENDING;
         this.statusChangeTime = LocalDateTime.now();
         this.cancellationFee = 0;
@@ -123,18 +123,13 @@ public class Order {
     }
 
     public void addItem(MenuItem item) {
-        if (itemsCount == items.length) {
-            System.out.println("Error: Maximum items reached.");
-            return;
-        }
-
-        items[itemsCount++] = item;
+        items.add(item);
     }
 
     public double getSubtotal() {
         double subtotal = 0;
-        for (int i = 0; i < itemsCount; i++)
-            subtotal += items[i].getPrice();
+        for (MenuItem item : items)
+            subtotal += item.getPrice();
         return subtotal;
     }
 
@@ -158,9 +153,9 @@ public class Order {
         System.out.println("Status: " + status);
 
         System.out.println("\n--- Items ---");
-        for (int i = 0; i < itemsCount; i++)
-            System.out.println(items[i].getName() + " - " + String.format("%.2f", items[i].getPrice()) + " lei");
-        
+        for (MenuItem item : items)
+            System.out.println(item.getName() + " - " + String.format("%.2f", item.getPrice()) + " lei");
+
         System.out.println("\n--- Pricing ---");
         System.out.println("Subtotal: " + String.format("%.2f", getSubtotal()) + " lei");
         System.out.println("Delivery Fee: " + String.format("%.2f", getDeliveryFee()) + " lei");

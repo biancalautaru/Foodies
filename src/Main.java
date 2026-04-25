@@ -3,13 +3,13 @@ import service.*;
 
 public class Main {
     public static void main(String[] args) {
-        UserService userService = new UserService(10);
-        RestaurantService restaurantService = new RestaurantService(10);
-        OrderService orderService = new OrderService(20, userService, restaurantService);
+        UserService userService = new UserService();
+        RestaurantService restaurantService = new RestaurantService();
+        OrderService orderService = new OrderService(userService, restaurantService);
 
         System.out.println("--- ADDING CUSTOMERS ---");
-        Customer customer1 = new Customer("C1", "John Doe", "john@email.com", "555-1234", 20);
-        Customer customer2 = new Customer("C2", "Jane Smith", "jane@email.com", "555-5678", 20);
+        Customer customer1 = new Customer("C1", "John Doe", "john@email.com", "555-1234");
+        Customer customer2 = new Customer("C2", "Jane Smith", "jane@email.com", "555-5678");
         userService.addCustomer(customer1);
         userService.addCustomer(customer2);
 
@@ -23,8 +23,8 @@ public class Main {
         Address pizzaPlaceAddr = new Address("123 Main St", "101", "New York");
         Address burgerPlaceAddr = new Address("456 Oak Ave", "202", "New York");
 
-        Restaurant pizzaPlace = new Restaurant("R1", "Pizza Paradise", pizzaPlaceAddr, 10);
-        Restaurant burgerPlace = new Restaurant("R2", "Burger Haven", burgerPlaceAddr, 10);
+        Restaurant pizzaPlace = new Restaurant("R1", "Pizza Paradise", pizzaPlaceAddr);
+        Restaurant burgerPlace = new Restaurant("R2", "Burger Haven", burgerPlaceAddr);
         restaurantService.addRestaurant(pizzaPlace);
         restaurantService.addRestaurant(burgerPlace);
 
@@ -125,10 +125,10 @@ public class Main {
         orderService.submitReview("#4", 5, "Too early to review!");
 
         System.out.println("\nAttempting to place order with empty cart:");
-        orderService.placeOrder(new Customer("C3", "Empty Cart User", "test@email.com", "555-0000", 20), deliveryAddr1);
+        orderService.placeOrder(new Customer("C3", "Empty Cart User", "test@email.com", "555-0000"), deliveryAddr1);
 
         System.out.println("\nAttempting to place order with mismatched delivery city:");
-        Customer testCustomer = new Customer("C3", "Test", "test@email.com", "555-0000", 20);
+        Customer testCustomer = new Customer("C3", "Test", "test@email.com", "555-0000");
         testCustomer.getCart().addItem(pizza1);
         orderService.placeOrder(testCustomer, new Address("100 Far St", "999", "Los Angeles"));
 

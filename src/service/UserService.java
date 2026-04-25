@@ -2,43 +2,32 @@ package service;
 
 import models.*;
 
-public class UserService {
-    private Customer[] customers;
-    private int customerCount;
-    private Driver[] drivers;
-    private int driverCount;
+import java.util.ArrayList;
+import java.util.List;
 
-    public UserService(int maxUsers) {
-        this.customers = new Customer[maxUsers];
-        this.customerCount = 0;
-        this.drivers = new Driver[maxUsers];
-        this.driverCount = 0;
+public class UserService {
+    private List<Customer> customers;
+    private List<Driver> drivers;
+
+    public UserService() {
+        this.customers = new ArrayList<>();
+        this.drivers = new ArrayList<>();
     }
 
     public void addCustomer(Customer customer) {
-        if (customerCount == customers.length) {
-            System.out.println("Error: Maximum customers reached.");
-            return;
-        }
-
-        customers[customerCount++] = customer;
+        customers.add(customer);
         System.out.println("Customer added: " + customer.getName());
     }
 
     public void addDriver(Driver driver) {
-        if (driverCount == drivers.length) {
-            System.out.println("Error: Maximum drivers reached.");
-            return;
-        }
-
-        drivers[driverCount++] = driver;
+        drivers.add(driver);
         System.out.println("Driver added: " + driver.getName());
     }
 
     public Driver findAvailableDriver() {
-        for (int i = 0; i < driverCount; i++)
-            if (drivers[i].isAvailable())
-                return drivers[i];
+        for (Driver driver : drivers)
+            if (driver.isAvailable())
+                return driver;
 
         return null;
     }

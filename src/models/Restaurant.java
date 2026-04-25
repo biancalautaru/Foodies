@@ -1,20 +1,21 @@
 package models;
 
+import java.util.ArrayList;
+import java.util.List;
+
 public class Restaurant {
     private String id;
     private String name;
     private Address address;
-    private MenuItem[] menu;
-    private int menuCount;
+    private List<MenuItem> menu;
     private double stars;
     private int reviewCount;
 
-    public Restaurant(String id, String name, Address address, int maxItemCapacity) {
+    public Restaurant(String id, String name, Address address) {
         this.id = id;
         this.name = name;
         this.address = address;
-        this.menu = new MenuItem[maxItemCapacity];
-        this.menuCount = 0;
+        this.menu = new ArrayList<>();
         this.stars = 0.0;
         this.reviewCount = 0;
     }
@@ -31,12 +32,8 @@ public class Restaurant {
         return address;
     }
 
-    public MenuItem[] getMenu() {
+    public List<MenuItem> getMenu() {
         return menu;
-    }
-
-    public int getMenuCount() {
-        return menuCount;
     }
 
     public double getStars() {
@@ -63,12 +60,7 @@ public class Restaurant {
     }
 
     public void addMenuItem(MenuItem menuItem) {
-        if (menuCount == menu.length) {
-            System.out.println("Error: Maximum menu items reached.");
-            return;
-        }
-
-        menu[menuCount++] = menuItem;
+        menu.add(menuItem);
         menuItem.setRestaurant(this);
     }
 }

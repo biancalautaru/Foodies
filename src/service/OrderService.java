@@ -1,21 +1,24 @@
 package service;
 
 import models.*;
+
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
 
 public class OrderService {
-    private Order[] orders;
-    private int orderCount;
-    private Review[] reviews;
-    private int reviewCount;
+    private Map<String, Order> orders;
+    private List<Review> reviews;
+    private int nextOrderId;
     private UserService userService;
     private RestaurantService restaurantService;
 
-    public OrderService(int maxOrders, UserService userService, RestaurantService restaurantService) {
-        this.orders = new Order[maxOrders];
-        this.orderCount = 0;
-        this.reviews = new Review[maxOrders * 2];
-        this.reviewCount = 0;
+    public OrderService(UserService userService, RestaurantService restaurantService) {
+        this.orders = new LinkedHashMap<>();
+        this.reviews = new ArrayList<>();
+        this.nextOrderId = 1;
         this.userService = userService;
         this.restaurantService = restaurantService;
     }
@@ -36,18 +39,13 @@ public class OrderService {
             return;
         }
 
-        if (orderCount == orders.length) {
-            System.out.println("Error: Maximum orders reached");
-            return;
-        }
+        String orderId = "#" + nextOrderId++;
+        Order order = new Order(orderId, customer, restaurant, address);
 
-        Order order = new Order("#" + String.valueOf(orderCount + 1), customer, restaurant, address, cart.getItemsCount());
+        for (MenuItem item : cart.getItems())
+            order.addItem(item);
 
-        MenuItem[] cartItems = cart.getItems();
-        for (int i = 0; i < cart.getItemsCount(); i++)
-            order.addItem(cartItems[i]);
-
-        orders[orderCount++] = order;
+        orders.put(orderId, order);
         System.out.println("\nOrder " + order.getId() + " placed successfully.");
         order.printOrderSummary();
 
@@ -201,14 +199,9 @@ public class OrderService {
             return;
         }
 
-        if (reviewCount == reviews.length) {
-            System.out.println("Error: Maximum reviews reached.");
-            return;
-        }
-
-        Review review = new Review(String.valueOf(reviewCount + 1), order.getCustomer(), order, rating, comment);
+        Review review = new Review(String.valueOf(reviews.size() + 1), order.getCustomer(), order, rating, comment);
         order.setReview(review);
-        reviews[reviewCount++] = review;
+        reviews.add(review);
 
         Restaurant restaurant = order.getRestaurant();
         int newCount = restaurant.getReviewCount() + 1;
@@ -224,9 +217,9 @@ public class OrderService {
 
         System.out.println("\n===== ORDER HISTORY =====");
         boolean foundOrders = false;
-        for (int i = 0; i < orderCount; i++)
-            if (orders[i].getCustomer().getId().equals(customerId)) {
-                System.out.println("Order " + orders[i].getId() + " | " + orders[i].getDate().format(formatter) +  " | " + orders[i].getRestaurant().getName() +  " | " + orders[i].getStatus() + " | " + String.format("%.2f", orders[i].getTotal()) + " lei");
+        for (Order order : orders.values())
+            if (order.getCustomer().getId().equals(customerId)) {
+                System.out.println("Order " + order.getId() + " | " + order.getDate().format(formatter) + " | " + order.getRestaurant().getName() + " | " + order.getStatus() + " | " + String.format("%.2f", order.getTotal()) + " lei");
                 foundOrders = true;
             }
 
@@ -263,10 +256,10 @@ public class OrderService {
         int count = 0;
         double totalRating = 0;
 
-        for (int i = 0; i < reviewCount; i++)
-            if (reviews[i].getOrder().getRestaurant().getId().equals(restaurantId)) {
-                System.out.println(reviews[i].getCustomer().getName() + ": " + reviews[i].getRating() + "/5 stars - " + reviews[i].getComment());
-                totalRating += reviews[i].getRating();
+        for (Review review : reviews)
+            if (review.getOrder().getRestaurant().getId().equals(restaurantId)) {
+                System.out.println(review.getCustomer().getName() + ": " + review.getRating() + "/5 stars - " + review.getComment());
+                totalRating += review.getRating();
                 count++;
             }
 
@@ -279,9 +272,7 @@ public class OrderService {
     }
 
     private void assignDriversToPendingOrders() {
-        for (int i = 0; i < orderCount; i++) {
-            Order order = orders[i];
-
+        for (Order order : orders.values()) {
             if (order.getStatus() == OrderStatus.ACCEPTED && order.getDriver() == null) {
                 Driver driver = userService.findAvailableDriver();
                 if (driver == null)
@@ -297,9 +288,6 @@ public class OrderService {
     }
 
     private Order findOrderById(String id) {
-        for (int i = 0; i < orderCount; i++)
-            if (orders[i].getId().equals(id))
-                return orders[i];
-        return null;
+        return orders.get(id);
     }
 }

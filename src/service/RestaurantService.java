@@ -2,22 +2,18 @@ package service;
 
 import models.*;
 
-public class RestaurantService {
-    private Restaurant[] restaurants;
-    private int restaurantCount;
+import java.util.LinkedHashMap;
+import java.util.Map;
 
-    public RestaurantService(int maxRestaurants) {
-        this.restaurants = new Restaurant[maxRestaurants];
-        this.restaurantCount = 0;
+public class RestaurantService {
+    private Map<String, Restaurant> restaurants;
+
+    public RestaurantService() {
+        this.restaurants = new LinkedHashMap<>();
     }
 
     public void addRestaurant(Restaurant restaurant) {
-        if (restaurantCount == restaurants.length) {
-            System.out.println("Error: Maximum restaurants reached.");
-            return;
-        }
-
-        restaurants[restaurantCount++] = restaurant;
+        restaurants.put(restaurant.getId(), restaurant);
         System.out.println("Restaurant added: " + restaurant.getName());
     }
 
@@ -34,8 +30,8 @@ public class RestaurantService {
 
     public void displayAllRestaurants() {
         System.out.println("\n===== ALL RESTAURANTS =====");
-        for (int i = 0; i < restaurantCount; i++)
-            System.out.println(restaurants[i]);
+        for (Restaurant restaurant : restaurants.values())
+            System.out.println(restaurant);
         System.out.println("============================\n");
     }
 
@@ -47,16 +43,12 @@ public class RestaurantService {
         }
 
         System.out.println("\n===== MENU: " + restaurant.getName() + " =====");
-        MenuItem[] menu = restaurant.getMenu();
-        for (int i = 0; i < restaurant.getMenuCount(); i++)
-            System.out.println("  " + menu[i]);
+        for (MenuItem item : restaurant.getMenu())
+            System.out.println("  " + item);
         System.out.println("==========================\n");
     }
 
     public Restaurant findRestaurantById(String id) {
-        for (int i = 0; i < restaurantCount; i++)
-            if (restaurants[i].getId().equals(id))
-                return restaurants[i];
-        return null;
+        return restaurants.get(id);
     }
 }
