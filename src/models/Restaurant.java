@@ -1,15 +1,19 @@
 package models;
 
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 
-public class Restaurant {
+public class Restaurant implements Comparable<Restaurant> {
     private String id;
     private String name;
     private Address address;
     private List<MenuItem> menu;
     private double stars;
     private int reviewCount;
+
+    public static final Comparator<Restaurant> BY_RATING =
+            Comparator.comparingDouble(Restaurant::getStars).reversed();
 
     public Restaurant(String id, String name, Address address) {
         this.id = id;
@@ -50,6 +54,11 @@ public class Restaurant {
 
     public void setReviewCount(int reviewCount) {
         this.reviewCount = reviewCount;
+    }
+
+    @Override
+    public int compareTo(Restaurant other) {
+        return this.name.compareToIgnoreCase(other.name);
     }
 
     @Override

@@ -1,11 +1,15 @@
 package models;
 
-public class MenuItem {
+import java.util.Comparator;
+
+public class MenuItem implements Comparable<MenuItem> {
     private String id;
     private String name;
     private String description;
     private double price;
     private Restaurant restaurant;
+
+    public static final Comparator<MenuItem> BY_PRICE = Comparator.comparingDouble(MenuItem::getPrice);
 
     public MenuItem(String id, String name, String description, double price) {
         this.id = id;
@@ -13,6 +17,10 @@ public class MenuItem {
         this.description = description;
         this.price = price;
         this.restaurant = null;
+    }
+
+    public String getId() {
+        return id;
     }
 
     public String getName() {
@@ -32,8 +40,12 @@ public class MenuItem {
     }
 
     @Override
+    public int compareTo(MenuItem other) {
+        return this.name.compareToIgnoreCase(other.name);
+    }
+
+    @Override
     public String toString() {
         return name + " - " + String.format("%.2f", price) + " lei";
     }
-
 }

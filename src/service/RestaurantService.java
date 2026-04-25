@@ -3,7 +3,10 @@ package service;
 import exceptions.RestaurantNotFoundException;
 import models.*;
 
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 
 public class RestaurantService {
@@ -29,6 +32,32 @@ public class RestaurantService {
         for (Restaurant restaurant : restaurants.values())
             System.out.println(restaurant);
         System.out.println("============================\n");
+    }
+
+    public List<Restaurant> getRestaurantsSortedByName() {
+        List<Restaurant> sorted = new ArrayList<>(restaurants.values());
+        Collections.sort(sorted);
+        return sorted;
+    }
+
+    public List<Restaurant> getRestaurantsSortedByRating() {
+        List<Restaurant> sorted = new ArrayList<>(restaurants.values());
+        sorted.sort(Restaurant.BY_RATING);
+        return sorted;
+    }
+
+    public void displayRestaurantsSortedByName() {
+        System.out.println("\n===== ALL RESTAURANTS (A-Z) =====");
+        for (Restaurant restaurant : getRestaurantsSortedByName())
+            System.out.println(restaurant);
+        System.out.println("=================================\n");
+    }
+
+    public void displayRestaurantsSortedByRating() {
+        System.out.println("\n===== ALL RESTAURANTS (top rated first) =====");
+        for (Restaurant restaurant : getRestaurantsSortedByRating())
+            System.out.println(restaurant);
+        System.out.println("=============================================\n");
     }
 
     public void displayRestaurantMenu(String restaurantId) {
