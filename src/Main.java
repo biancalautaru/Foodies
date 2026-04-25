@@ -1,3 +1,4 @@
+import exceptions.*;
 import models.*;
 import service.*;
 
@@ -115,22 +116,47 @@ public class Main {
         System.out.println("\n--- TESTING ERROR SCENARIOS ---");
 
         System.out.println("Attempting to submit duplicate review for order #1:");
-        orderService.submitReview("#1", 3, "Changing my mind...");
+        try {
+            orderService.submitReview("#1", 3, "Changing my mind...");
+        } catch (InvalidReviewException e) {
+            System.out.println("Caught InvalidReviewException: " + e.getMessage());
+        }
 
         System.out.println("\nAttempting to review an order not yet delivered:");
         Cart cart4 = customer1.getCart();
         cart4.addItem(pizza2);
         orderService.placeOrder(customer1, new Address("555 Review St", "333", "New York"));
         orderService.acceptOrder("#4");
-        orderService.submitReview("#4", 5, "Too early to review!");
+        try {
+            orderService.submitReview("#4", 5, "Too early to review!");
+        } catch (InvalidReviewException e) {
+            System.out.println("Caught InvalidReviewException: " + e.getMessage());
+        }
 
         System.out.println("\nAttempting to place order with empty cart:");
-        orderService.placeOrder(new Customer("C3", "Empty Cart User", "test@email.com", "555-0000"), deliveryAddr1);
+        try {
+            orderService.placeOrder(new Customer("C3", "Empty Cart User", "test@email.com", "555-0000"), deliveryAddr1);
+        } catch (EmptyCartException e) {
+            System.out.println("Caught EmptyCartException: " + e.getMessage());
+        }
 
         System.out.println("\nAttempting to place order with mismatched delivery city:");
-        Customer testCustomer = new Customer("C3", "Test", "test@email.com", "555-0000");
+        Customer testCustomer = new Customer("C4", "Test", "test@email.com", "555-0000");
         testCustomer.getCart().addItem(pizza1);
-        orderService.placeOrder(testCustomer, new Address("100 Far St", "999", "Los Angeles"));
+        try {
+            orderService.placeOrder(testCustomer, new Address("100 Far St", "999", "Los Angeles"));
+        } catch (DeliveryAddressMismatchException e) {
+            System.out.println("Caught DeliveryAddressMismatchException: " + e.getMessage());
+        }
+
+        System.out.println("\nAttempting to add items from different restaurants to the same cart:");
+        Customer mixedCartCustomer = new Customer("C5", "Mixed Cart User", "mixed@email.com", "555-1111");
+        mixedCartCustomer.getCart().addItem(pizza1);
+        try {
+            mixedCartCustomer.getCart().addItem(burger1);
+        } catch (MixedRestaurantCartException e) {
+            System.out.println("Caught MixedRestaurantCartException: " + e.getMessage());
+        }
 
         System.out.println("\nAttempting to cancel order that's already out for delivery:");
         Cart cart5 = customer2.getCart();
@@ -140,7 +166,10 @@ public class Main {
         orderService.startOrderPreparation("#5");
         orderService.markOrderReady("#5");
         orderService.pickupOrder("#5");
-        System.out.println("Trying to cancel order out for delivery:");
-        orderService.cancelOrder("#5");
+        try {
+            orderService.cancelOrder("#5");
+        } catch (OrderCancellationException e) {
+            System.out.println("Caught OrderCancellationException: " + e.getMessage());
+        }
     }
 }

@@ -1,5 +1,6 @@
 package service;
 
+import exceptions.*;
 import models.*;
 
 import java.time.format.DateTimeFormatter;
@@ -25,19 +26,15 @@ public class OrderService {
 
     public void placeOrder(Customer customer, Address address) {
         Cart cart = customer.getCart();
-        if (cart.isEmpty()) {
-            System.out.println("Error: Cart is empty.");
-            return;
-        }
+        if (cart.isEmpty())
+            throw new EmptyCartException();
 
         Restaurant restaurant = cart.getRestaurant();
         String restaurantCity = restaurant.getAddress().getCity();
         String deliveryCity = address.getCity();
 
-        if (!restaurantCity.equalsIgnoreCase(deliveryCity)) {
-            System.out.println("Error: Delivery address must be in the same city as restaurant.");
-            return;
-        }
+        if (!restaurantCity.equalsIgnoreCase(deliveryCity))
+            throw new DeliveryAddressMismatchException(restaurantCity, deliveryCity);
 
         String orderId = "#" + nextOrderId++;
         Order order = new Order(orderId, customer, restaurant, address);
@@ -54,118 +51,78 @@ public class OrderService {
 
     public void acceptOrder(String orderId) {
         Order order = findOrderById(orderId);
-        if (order == null) {
-            System.out.println("Error: Order not found.");
-            return;
-        }
 
-        if (order.getStatus() != OrderStatus.PENDING) {
-            System.out.println("Error: Only pending orders can be accepted.");
-            return;
-        }
+        if (order.getStatus() != OrderStatus.PENDING)
+            throw new InvalidOrderStateException("Only pending orders can be accepted. Order " + orderId + " is " + order.getStatus() + ".");
 
-        if (order.updateStatus(OrderStatus.ACCEPTED)) {
-            System.out.println("Order " + order.getId() + " accepted by restaurant " + order.getRestaurant().getName() + ".");
-            assignDriversToPendingOrders();
-        }
-        else
-            System.out.println("Error: Cannot accept order " + order.getId() + ".");
+        if (!order.updateStatus(OrderStatus.ACCEPTED))
+            throw new InvalidOrderStateException("Cannot accept order " + orderId + ".");
+
+        System.out.println("Order " + order.getId() + " accepted by restaurant " + order.getRestaurant().getName() + ".");
+        assignDriversToPendingOrders();
     }
 
     public void startOrderPreparation(String orderId) {
         Order order = findOrderById(orderId);
-        if (order == null) {
-            System.out.println("Error: Order not found.");
-            return;
-        }
 
-        if (order.getStatus() != OrderStatus.ACCEPTED && order.getStatus() != OrderStatus.DRIVER_ASSIGNED) {
-            System.out.println("Error: Only accepted or driver-assigned orders can start preparation.");
-            return;
-        }
+        if (order.getStatus() != OrderStatus.ACCEPTED && order.getStatus() != OrderStatus.DRIVER_ASSIGNED)
+            throw new InvalidOrderStateException("Only accepted or driver-assigned orders can start preparation. Order " + orderId + " is " + order.getStatus() + ".");
 
-        if (order.updateStatus(OrderStatus.PREPARING))
-            System.out.println("Order " + order.getId() + " is now being prepared.");
-        else
-            System.out.println("Error: Cannot start preparation for order " + order.getId() + ".");
+        if (!order.updateStatus(OrderStatus.PREPARING))
+            throw new InvalidOrderStateException("Cannot start preparation for order " + orderId + ".");
+
+        System.out.println("Order " + order.getId() + " is now being prepared.");
     }
 
     public void markOrderReady(String orderId) {
         Order order = findOrderById(orderId);
-        if (order == null) {
-            System.out.println("Error: Order not found.");
-            return;
-        }
 
-        if (order.getStatus() != OrderStatus.PREPARING) {
-            System.out.println("Error: Only preparing orders can be marked as ready.");
-            return;
-        }
+        if (order.getStatus() != OrderStatus.PREPARING)
+            throw new InvalidOrderStateException("Only preparing orders can be marked as ready. Order " + orderId + " is " + order.getStatus() + ".");
 
-        if (order.updateStatus(OrderStatus.READY_FOR_PICKUP))
-            System.out.println("Order " + order.getId() + " is ready for pickup.");
-        else
-            System.out.println("Error: Cannot mark order " + order.getId() + " as ready.");
+        if (!order.updateStatus(OrderStatus.READY_FOR_PICKUP))
+            throw new InvalidOrderStateException("Cannot mark order " + orderId + " as ready.");
+
+        System.out.println("Order " + order.getId() + " is ready for pickup.");
     }
 
     public void pickupOrder(String orderId) {
         Order order = findOrderById(orderId);
-        if (order == null) {
-            System.out.println("Error: Order not found.");
-            return;
-        }
 
-        if (order.getStatus() != OrderStatus.READY_FOR_PICKUP) {
-            System.out.println("Error: Only ready orders can be picked up.");
-            return;
-        }
+        if (order.getStatus() != OrderStatus.READY_FOR_PICKUP)
+            throw new InvalidOrderStateException("Only ready orders can be picked up. Order " + orderId + " is " + order.getStatus() + ".");
 
-        if (order.getDriver() == null) {
-            System.out.println("Error: Order has no assigned driver.");
-            return;
-        }
+        if (order.getDriver() == null)
+            throw new InvalidOrderStateException("Order " + orderId + " has no assigned driver.");
 
-        if (order.updateStatus(OrderStatus.OUT_FOR_DELIVERY))
-            System.out.println("Order " + order.getId() + " is now out for delivery with driver " + order.getDriver().getName() + ".");
-        else
-            System.out.println("Error: Cannot pick up order " + order.getId() + ".");
+        if (!order.updateStatus(OrderStatus.OUT_FOR_DELIVERY))
+            throw new InvalidOrderStateException("Cannot pick up order " + orderId + ".");
+
+        System.out.println("Order " + order.getId() + " is now out for delivery with driver " + order.getDriver().getName() + ".");
     }
 
     public void deliverOrder(String orderId) {
         Order order = findOrderById(orderId);
-        if (order == null) {
-            System.out.println("Error: Order not found.");
-            return;
-        }
 
-        if (order.getStatus() != OrderStatus.OUT_FOR_DELIVERY) {
-            System.out.println("Error: Only orders out for delivery can be delivered.");
-            return;
-        }
+        if (order.getStatus() != OrderStatus.OUT_FOR_DELIVERY)
+            throw new InvalidOrderStateException("Only orders out for delivery can be delivered. Order " + orderId + " is " + order.getStatus() + ".");
 
-        if (order.updateStatus(OrderStatus.DELIVERED)) {
-            Driver driver = order.getDriver();
-            if (driver != null)
-                driver.setAvailable(true);
-            System.out.println("Order " + order.getId() + " delivered successfully.");
+        if (!order.updateStatus(OrderStatus.DELIVERED))
+            throw new InvalidOrderStateException("Cannot deliver order " + orderId + ".");
 
-            assignDriversToPendingOrders();
-        }
-        else
-            System.out.println("Error: Cannot deliver order " + order.getId() + ".");
+        Driver driver = order.getDriver();
+        if (driver != null)
+            driver.setAvailable(true);
+
+        System.out.println("Order " + order.getId() + " delivered successfully.");
+        assignDriversToPendingOrders();
     }
 
     public void cancelOrder(String orderId) {
         Order order = findOrderById(orderId);
-        if (order == null) {
-            System.out.println("Error: Order not found.");
-            return;
-        }
 
-        if (!order.cancelOrder()) {
-            System.out.println("Error: Cannot cancel order " + order.getId() + " because it's being delivered.");
-            return;
-        }
+        if (!order.cancelOrder())
+            throw new OrderCancellationException(orderId);
 
         Driver driver = order.getDriver();
         if (driver != null)
@@ -179,25 +136,15 @@ public class OrderService {
 
     public void submitReview(String orderId, int rating, String comment) {
         Order order = findOrderById(orderId);
-        if (order == null) {
-            System.out.println("Error: Order not found.");
-            return;
-        }
 
-        if (order.getStatus() != OrderStatus.DELIVERED) {
-            System.out.println("Error: Can only review delivered orders.");
-            return;
-        }
+        if (order.getStatus() != OrderStatus.DELIVERED)
+            throw new InvalidReviewException("Can only review delivered orders. Order " + orderId + " is " + order.getStatus() + ".");
 
-        if (order.getReview() != null) {
-            System.out.println("Error: Order " + orderId + " has already been reviewed.");
-            return;
-        }
+        if (order.getReview() != null)
+            throw new InvalidReviewException("Order " + orderId + " has already been reviewed.");
 
-        if (rating < 1 || rating > 5) {
-            System.out.println("Error: Rating must be between 1 and 5.");
-            return;
-        }
+        if (rating < 1 || rating > 5)
+            throw new InvalidReviewException("Rating must be between 1 and 5, got: " + rating + ".");
 
         Review review = new Review(String.valueOf(reviews.size() + 1), order.getCustomer(), order, rating, comment);
         order.setReview(review);
@@ -230,11 +177,6 @@ public class OrderService {
 
     public void displayOrderDetails(String orderId) {
         Order order = findOrderById(orderId);
-        if (order == null) {
-            System.out.println("Error: Order not found.");
-            return;
-        }
-
         order.printOrderSummary();
 
         if (order.getReview() == null)
@@ -247,10 +189,6 @@ public class OrderService {
 
     public void displayRestaurantReviews(String restaurantId) {
         Restaurant restaurant = restaurantService.findRestaurantById(restaurantId);
-        if (restaurant == null) {
-            System.out.println("Error: Restaurant not found.");
-            return;
-        }
 
         System.out.println("\n===== REVIEWS FOR " + restaurant.getName() + " =====");
         int count = 0;
@@ -288,6 +226,9 @@ public class OrderService {
     }
 
     private Order findOrderById(String id) {
-        return orders.get(id);
+        Order order = orders.get(id);
+        if (order == null)
+            throw new OrderNotFoundException(id);
+        return order;
     }
 }

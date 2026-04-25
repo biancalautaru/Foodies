@@ -1,5 +1,7 @@
 package models;
 
+import exceptions.MixedRestaurantCartException;
+
 import java.util.ArrayList;
 import java.util.List;
 
@@ -26,8 +28,7 @@ public class Cart {
         if (items.isEmpty())
             this.restaurant = itemRestaurant;
         else if (!itemRestaurant.getId().equals(this.restaurant.getId())) {
-            System.out.println("Error: Cannot add items from different restaurants to cart.");
-            return;
+            throw new MixedRestaurantCartException(this.restaurant.getName(), itemRestaurant.getName());
         }
 
         items.add(item);
