@@ -171,5 +171,37 @@ public class Main {
         } catch (OrderCancellationException e) {
             System.out.println("Caught OrderCancellationException: " + e.getMessage());
         }
+
+        System.out.println("\n--- COMPLETING OUTSTANDING ORDERS BEFORE REORDER TEST ---");
+        orderService.deliverOrder("#5");
+        orderService.startOrderPreparation("#4");
+        orderService.markOrderReady("#4");
+        orderService.pickupOrder("#4");
+        orderService.deliverOrder("#4");
+
+        System.out.println("\n--- CUSTOMER REPEATING A SPECIFIC PAST ORDER ---");
+        System.out.println("Customer 1 reorders order #1 (specific order, new address):");
+        orderService.reorder(customer1, "#1", new Address("10 New St", "42", "New York"));
+        orderService.acceptOrder("#6");
+        orderService.startOrderPreparation("#6");
+        orderService.markOrderReady("#6");
+        orderService.pickupOrder("#6");
+        orderService.deliverOrder("#6");
+
+        System.out.println("\n--- ERROR SCENARIOS FOR REPEAT ORDER ---");
+
+        System.out.println("Attempting to reorder someone else's order:");
+        try {
+            orderService.reorder(customer2, "#1", new Address("10 New St", "42", "New York"));
+        } catch (OrderNotFoundException e) {
+            System.out.println("Caught OrderNotFoundException: " + e.getMessage());
+        }
+
+        System.out.println("\nAttempting to reorder a cancelled order:");
+        try {
+            orderService.reorder(customer1, "#3", new Address("10 New St", "42", "New York"));
+        } catch (InvalidOrderStateException e) {
+            System.out.println("Caught InvalidOrderStateException: " + e.getMessage());
+        }
     }
 }

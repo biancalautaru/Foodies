@@ -30,23 +30,46 @@ public class OrderService {
             throw new EmptyCartException();
 
         Restaurant restaurant = cart.getRestaurant();
-        String restaurantCity = restaurant.getAddress().getCity();
-        String deliveryCity = address.getCity();
+        String restaurantCity = restaurant.getAddress().city();
+        String deliveryCity = address.city();
 
         if (!restaurantCity.equalsIgnoreCase(deliveryCity))
             throw new DeliveryAddressMismatchException(restaurantCity, deliveryCity);
 
+        Cart snapshot = cart.clone();
+        cart.clearCart();
+
         String orderId = "#" + nextOrderId++;
         Order order = new Order(orderId, customer, restaurant, address);
 
-        for (MenuItem item : cart.getItems())
+        for (MenuItem item : snapshot.getItems())
             order.addItem(item);
 
         orders.put(orderId, order);
         System.out.println("\nOrder " + order.getId() + " placed successfully.");
         order.printOrderSummary();
+    }
 
-        cart.clearCart();
+    public void reorder(Customer customer, String originalOrderId, Address deliveryAddress) {
+        Order original = findOrderById(originalOrderId);
+
+        if (!original.getCustomer().getId().equals(customer.getId()))
+            throw new OrderNotFoundException("Order " + originalOrderId + " does not belong to customer " + customer.getName() + ".");
+
+        if (original.getStatus() != OrderStatus.DELIVERED)
+            throw new InvalidOrderStateException("Can only reorder from a delivered order. Order " + originalOrderId + " is " + original.getStatus() + ".");
+
+        String restaurantCity = original.getRestaurant().getAddress().city();
+        String deliveryCity = deliveryAddress.city();
+        if (!restaurantCity.equalsIgnoreCase(deliveryCity))
+            throw new DeliveryAddressMismatchException(restaurantCity, deliveryCity);
+
+        String newOrderId = "#" + nextOrderId++;
+        Order newOrder = original.toNewOrder(newOrderId, deliveryAddress);
+        orders.put(newOrderId, newOrder);
+
+        System.out.println("\nReorder " + newOrder.getId() + " created from order " + originalOrderId + ".");
+        newOrder.printOrderSummary();
     }
 
     public void acceptOrder(String orderId) {
@@ -182,8 +205,8 @@ public class OrderService {
         if (order.getReview() == null)
             System.out.println("No review yet.");
         else {
-            System.out.println("Rating: " + order.getReview().getRating() + "/5 stars");
-            System.out.println("Comment: " + order.getReview().getComment());
+            System.out.println("Rating: " + order.getReview().rating() + "/5 stars");
+            System.out.println("Comment: " + order.getReview().comment());
         }
     }
 
@@ -195,9 +218,9 @@ public class OrderService {
         double totalRating = 0;
 
         for (Review review : reviews)
-            if (review.getOrder().getRestaurant().getId().equals(restaurantId)) {
-                System.out.println(review.getCustomer().getName() + ": " + review.getRating() + "/5 stars - " + review.getComment());
-                totalRating += review.getRating();
+            if (review.order().getRestaurant().getId().equals(restaurantId)) {
+                System.out.println(review.customer().getName() + ": " + review.rating() + "/5 stars - " + review.comment());
+                totalRating += review.rating();
                 count++;
             }
 

@@ -1,17 +1,9 @@
 package models;
 
-public class Address {
-    private String street;
-    private String number;
-    private String city;
+public record Address(String street, String number, String city) {
 
-    public Address(String street, String number, String city) {
-        this.street = street;
-        this.number = number;
-        this.city = city;
-    }
-
-    public String getCity() {
-        return city;
+    @Override
+    public String toString() {
+        return street + " " + number + ", " + city;
     }
 }

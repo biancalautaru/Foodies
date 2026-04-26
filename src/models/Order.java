@@ -5,7 +5,7 @@ import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
 
-public class Order {
+public class Order implements Cloneable {
     private String id;
     private LocalDateTime date;
     private Customer customer;
@@ -19,6 +19,7 @@ public class Order {
     private double cancellationFee;
     private static final double DELIVERY_FEE = 6;
     private static final double CANCELLATION_FEE = 25;
+    private static final DateTimeFormatter FORMATTER = DateTimeFormatter.ofPattern("dd.MM.yyyy, HH:mm");
 
     public Order(String id, Customer customer, Restaurant restaurant, Address deliveryAddress) {
         this.id = id;
@@ -142,14 +143,12 @@ public class Order {
     }
 
     public void printOrderSummary() {
-        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd.MM.yyyy, HH:mm");
-
         System.out.println("\n========== ORDER SUMMARY ==========");
-
         System.out.println("Order ID: " + id);
-        System.out.println("Date: " + date.format(formatter));
+        System.out.println("Date: " + date.format(FORMATTER));
         System.out.println("Customer: " + customer.getName());
         System.out.println("Restaurant: " + restaurant.getName());
+        System.out.println("Delivery to: " + deliveryAddress);
         System.out.println("Status: " + status);
 
         System.out.println("\n--- Items ---");
@@ -165,5 +164,29 @@ public class Order {
             System.out.println("Driver: " + driver.getName());
 
         System.out.println("==================================\n");
+    }
+
+    @Override
+    protected Order clone() {
+        try {
+            Order cloned = (Order) super.clone();
+            cloned.items = new ArrayList<>(this.items);
+            return cloned;
+        } catch (CloneNotSupportedException e) {
+            throw new AssertionError("Order is Cloneable - this should never happen", e);
+        }
+    }
+
+    public Order toNewOrder(String newId, Address newDeliveryAddress) {
+        Order fresh = clone();
+        fresh.id = newId;
+        fresh.date = LocalDateTime.now();
+        fresh.deliveryAddress = newDeliveryAddress;
+        fresh.status = OrderStatus.PENDING;
+        fresh.statusChangeTime = LocalDateTime.now();
+        fresh.driver = null;
+        fresh.review = null;
+        fresh.cancellationFee = 0;
+        return fresh;
     }
 }
