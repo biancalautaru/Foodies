@@ -26,6 +26,14 @@ public class MenuService {
         return sorted;
     }
 
+    public void displayMenu(String restaurantId) {
+        Restaurant restaurant = restaurantService.findRestaurantById(restaurantId);
+        System.out.println("\n===== MENIU: " + restaurant.getName() + " =====");
+        for (MenuItem item : restaurant.getMenu())
+            System.out.println("  " + item);
+        System.out.println("==========================\n");
+    }
+
     public void displayMenuSortedByName(String restaurantId) {
         Restaurant restaurant = restaurantService.findRestaurantById(restaurantId);
         System.out.println("\n===== MENIU (A-Z): " + restaurant.getName() + " =====");

@@ -17,8 +17,8 @@ public class Order implements Cloneable {
     private Review review;
     private LocalDateTime statusChangeTime;
     private double cancellationFee;
-    private static final double DELIVERY_FEE = 6;
-    private static final double CANCELLATION_FEE = 25;
+
+    private static final double DELIVERY_FEE = 10;
     private static final DateTimeFormatter FORMATTER = DateTimeFormatter.ofPattern("dd.MM.yyyy, HH:mm");
 
     public Order(String id, Customer customer, Restaurant restaurant, Address deliveryAddress) {
@@ -69,62 +69,8 @@ public class Order implements Cloneable {
         this.review = review;
     }
 
-    public boolean updateStatus(OrderStatus newStatus) {
-        if (isValidStatusTransition(status, newStatus)) {
-            status = newStatus;
-            statusChangeTime = LocalDateTime.now();
-            return true;
-        }
-
-        return false;
-    }
-
-    public boolean cancelOrder() {
-        if (status == OrderStatus.OUT_FOR_DELIVERY || status == OrderStatus.DELIVERED)
-            return false;
-
-        if (status == OrderStatus.DRIVER_ASSIGNED || status == OrderStatus.PREPARING || status == OrderStatus.READY_FOR_PICKUP)
-            cancellationFee = CANCELLATION_FEE;
-
-        status = OrderStatus.CANCELLED;
-        this.statusChangeTime = LocalDateTime.now();
-
-        return true;
-    }
-
-    private boolean isValidStatusTransition(OrderStatus oldStatus, OrderStatus newStatus) {
-        if (oldStatus == newStatus)
-            return false;
-
-        if (oldStatus == OrderStatus.CANCELLED || newStatus == OrderStatus.CANCELLED)
-            return false;
-
-        switch (oldStatus) {
-            case PENDING:
-                return newStatus == OrderStatus.ACCEPTED;
-            case ACCEPTED:
-                return newStatus == OrderStatus.DRIVER_ASSIGNED || newStatus == OrderStatus.PREPARING;
-            case DRIVER_ASSIGNED:
-                return newStatus == OrderStatus.PREPARING;
-            case PREPARING:
-                return newStatus == OrderStatus.READY_FOR_PICKUP;
-            case READY_FOR_PICKUP:
-                return newStatus == OrderStatus.OUT_FOR_DELIVERY;
-            case OUT_FOR_DELIVERY:
-                return newStatus == OrderStatus.DELIVERED;
-            case DELIVERED:
-                return false;
-            default:
-                return false;
-        }
-    }
-
     public double getCancellationFee() {
         return cancellationFee;
-    }
-
-    public void addItem(MenuItem item) {
-        items.add(item);
     }
 
     public double getSubtotal() {
@@ -142,28 +88,104 @@ public class Order implements Cloneable {
         return getSubtotal() + getDeliveryFee();
     }
 
-    public void printOrderSummary() {
-        System.out.println("\n========== REZUMAT COMANDĂ ==========");
-        System.out.println("ID comandă: " + id);
-        System.out.println("Data: " + date.format(FORMATTER));
-        System.out.println("Client: " + customer.getName());
-        System.out.println("Restaurant: " + restaurant.getName());
-        System.out.println("Livrare la: " + deliveryAddress);
-        System.out.println("Stare: " + status);
+    public void addItem(MenuItem item) {
+        items.add(item);
+    }
 
-        System.out.println("\n--- Produse ---");
+    public boolean updateStatus(OrderStatus newStatus) {
+        if (isValidStatusTransition(status, newStatus)) {
+            status = newStatus;
+            statusChangeTime = LocalDateTime.now();
+            return true;
+        }
+
+        return false;
+    }
+
+    public boolean cancelOrder() {
+        if (status == OrderStatus.DELIVERED || status == OrderStatus.CANCELLED)
+            return false;
+
+        switch (status) {
+            case PENDING:
+            case PREPARING:
+                cancellationFee = 0;
+                break;
+            case READY_FOR_PICKUP:
+                cancellationFee = 0.30 * getSubtotal();
+                break;
+            case OUT_FOR_DELIVERY:
+                cancellationFee = getSubtotal() + DELIVERY_FEE;
+                break;
+            default:
+                break;
+        }
+
+        status = OrderStatus.CANCELLED;
+        statusChangeTime = LocalDateTime.now();
+        return true;
+    }
+
+    private boolean isValidStatusTransition(OrderStatus oldStatus, OrderStatus newStatus) {
+        if (oldStatus == newStatus)
+            return false;
+
+        if (oldStatus == OrderStatus.CANCELLED || newStatus == OrderStatus.CANCELLED)
+            return false;
+
+        switch (oldStatus) {
+            case PENDING:
+                return newStatus == OrderStatus.PREPARING;
+            case PREPARING:
+                return newStatus == OrderStatus.READY_FOR_PICKUP;
+            case READY_FOR_PICKUP:
+                return newStatus == OrderStatus.OUT_FOR_DELIVERY;
+            case OUT_FOR_DELIVERY:
+                return newStatus == OrderStatus.DELIVERED;
+            default:
+                return false;
+        }
+    }
+
+    private String statusToRomanian() {
+        switch (status) {
+            case PENDING:          return "În așteptare";
+            case PREPARING:        return "În preparare";
+            case READY_FOR_PICKUP: return "Gata de ridicare";
+            case OUT_FOR_DELIVERY: return "În livrare";
+            case DELIVERED:        return "Livrată";
+            case CANCELLED:        return "Anulată";
+            default:               return status.toString();
+        }
+    }
+
+    public String toSummaryString() {
+        StringBuilder sb = new StringBuilder();
+        sb.append("\n========== REZUMAT COMANDĂ ==========\n");
+        sb.append("ID comandă: ").append(id).append("\n");
+        sb.append("Data: ").append(date.format(FORMATTER)).append("\n");
+        sb.append("Client: ").append(customer.getName()).append("\n");
+        sb.append("Restaurant: ").append(restaurant.getName()).append("\n");
+        sb.append("Livrare la: ").append(deliveryAddress).append("\n");
+        sb.append("Stare: ").append(statusToRomanian()).append("\n");
+
+        sb.append("\n--- Produse ---\n");
         for (MenuItem item : items)
-            System.out.println(item.getName() + " - " + String.format("%.2f", item.getPrice()) + " lei");
+            sb.append(item.getName()).append(" - ").append(String.format("%.2f", item.getPrice())).append(" lei\n");
 
-        System.out.println("\n--- Costuri ---");
-        System.out.println("Valoare produse: " + String.format("%.2f", getSubtotal()) + " lei");
-        System.out.println("Taxă livrare: " + String.format("%.2f", getDeliveryFee()) + " lei");
-        System.out.println("TOTAL: " + String.format("%.2f", getTotal()) + " lei");
+        sb.append("\n--- Costuri ---\n");
+        sb.append("Valoare produse: ").append(String.format("%.2f", getSubtotal())).append(" lei\n");
+        sb.append("Taxă livrare: ").append(String.format("%.2f", getDeliveryFee())).append(" lei\n");
+        sb.append("TOTAL: ").append(String.format("%.2f", getTotal())).append(" lei\n");
+
+        if (status == OrderStatus.CANCELLED)
+            sb.append("Taxă anulare: ").append(String.format("%.2f", cancellationFee)).append(" lei\n");
 
         if (driver != null)
-            System.out.println("Curier: " + driver.getName());
+            sb.append("Curier: ").append(driver.getName()).append("\n");
 
-        System.out.println("==================================\n");
+        sb.append("==================================\n");
+        return sb.toString();
     }
 
     @Override
@@ -173,20 +195,20 @@ public class Order implements Cloneable {
             cloned.items = new ArrayList<>(this.items);
             return cloned;
         } catch (CloneNotSupportedException e) {
-            throw new AssertionError("Clasa Order este Cloneable - nu ar trebui să se întâmple", e);
+            throw new AssertionError("Clasa Order este Cloneable", e);
         }
     }
 
     public Order toNewOrder(String newId, Address newDeliveryAddress) {
-        Order fresh = clone();
-        fresh.id = newId;
-        fresh.date = LocalDateTime.now();
-        fresh.deliveryAddress = newDeliveryAddress;
-        fresh.status = OrderStatus.PENDING;
-        fresh.statusChangeTime = LocalDateTime.now();
-        fresh.driver = null;
-        fresh.review = null;
-        fresh.cancellationFee = 0;
-        return fresh;
+        Order newOrder = clone();
+        newOrder.id = newId;
+        newOrder.date = LocalDateTime.now();
+        newOrder.deliveryAddress = newDeliveryAddress;
+        newOrder.status = OrderStatus.PENDING;
+        newOrder.statusChangeTime = LocalDateTime.now();
+        newOrder.driver = null;
+        newOrder.review = null;
+        newOrder.cancellationFee = 0;
+        return newOrder;
     }
 }

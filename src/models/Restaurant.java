@@ -17,10 +17,13 @@ public class Restaurant implements Comparable<Restaurant> {
         boolean bNoReviews = b.getReviewCount() == 0;
         if (aNoReviews && bNoReviews)
             return a.getName().compareToIgnoreCase(b.getName());
-        if (aNoReviews) return 1;
-        if (bNoReviews) return -1;
+        if (aNoReviews)
+            return 1;
+        if (bNoReviews)
+            return -1;
         int cmp = Double.compare(b.getStars(), a.getStars());
-        if (cmp != 0) return cmp;
+        if (cmp != 0)
+            return cmp;
         return a.getName().compareToIgnoreCase(b.getName());
     };
 
@@ -70,15 +73,15 @@ public class Restaurant implements Comparable<Restaurant> {
         return this.name.compareToIgnoreCase(other.name);
     }
 
-    @Override
-    public String toString() {
-        if (reviewCount == 0)
-            return name + " (Fără recenzii)";
-        return id + ": " + name + " (" + String.format("%.2f", stars) + "/5 stele din " + reviewCount + " recenzii)";
-    }
-
     public void addMenuItem(MenuItem menuItem) {
         menu.add(menuItem);
         menuItem.setRestaurant(this);
+    }
+
+    @Override
+    public String toString() {
+        if (reviewCount == 0)
+            return name + " (Nicio recenzie)";
+        return id + ": " + name + " (" + String.format("%.2f", stars) + "/5 stele din " + reviewCount + " recenzii)";
     }
 }

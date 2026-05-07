@@ -1,6 +1,7 @@
 package service;
 
-import exceptions.*;
+import exceptions.EntityNotFoundException;
+import exceptions.InvalidOrderException;
 import models.*;
 
 import java.time.format.DateTimeFormatter;
@@ -27,160 +28,156 @@ public class OrderService {
     public void placeOrder(Customer customer, Address address) {
         Cart cart = customer.getCart();
         if (cart.isEmpty())
-            throw new EmptyCartException();
+            throw new InvalidOrderException("Coșul este gol.");
 
         Restaurant restaurant = cart.getRestaurant();
         String restaurantCity = restaurant.getAddress().city();
         String deliveryCity = address.city();
 
         if (!restaurantCity.equalsIgnoreCase(deliveryCity))
-            throw new DeliveryAddressMismatchException(restaurantCity, deliveryCity);
+            throw new InvalidOrderException("Orașul adresei de livrare '" + deliveryCity + "' nu corespunde cu orașul restaurantului '" + restaurantCity + "'.");
 
-        Cart snapshot = cart.clone();
+        List<MenuItem> snapshot = new ArrayList<>(cart.getItems());
         cart.clearCart();
 
         String orderId = "#" + nextOrderId++;
         Order order = new Order(orderId, customer, restaurant, address);
 
-        for (MenuItem item : snapshot.getItems())
+        for (MenuItem item : snapshot)
             order.addItem(item);
 
         orders.put(orderId, order);
-        System.out.println("\nComanda " + order.getId() + " a fost plasată cu succes.");
-        order.printOrderSummary();
+        AuditService.getInstance().log("placeOrder");
+    }
+
+    public void confirmOrder(String orderId) {
+        Order order = findOrderById(orderId);
+
+        if (order.getStatus() != OrderStatus.PENDING)
+            throw new InvalidOrderException("Doar comenzile în așteptare pot fi confirmate. Comanda " + orderId + " este " + order.getStatus() + ".");
+
+        if (!order.updateStatus(OrderStatus.PREPARING))
+            throw new InvalidOrderException("Nu se poate confirma comanda " + orderId + ".");
+
+        AuditService.getInstance().log("confirmOrder");
+    }
+
+    public void restaurantCancelOrder(String orderId) {
+        Order order = findOrderById(orderId);
+
+        if (order.getStatus() != OrderStatus.PENDING)
+            throw new InvalidOrderException("Restaurantul poate anula doar comenzile în așteptare. Comanda " + orderId + " este " + order.getStatus() + ".");
+
+        order.cancelOrder();
+        AuditService.getInstance().log("restaurantCancelOrder");
+        System.out.println("Comanda " + orderId + " a fost anulată de restaurant.");
     }
 
     public void reorder(Customer customer, String originalOrderId, Address deliveryAddress) {
         Order original = findOrderById(originalOrderId);
 
         if (!original.getCustomer().getId().equals(customer.getId()))
-            throw new OrderAccessDeniedException(
-                    "Comanda " + originalOrderId + " nu aparține clientului " + customer.getName() + ".");
+            throw new InvalidOrderException("Comanda " + originalOrderId + " nu aparține clientului " + customer.getName() + ".");
 
         if (original.getStatus() != OrderStatus.DELIVERED)
-            throw new InvalidOrderStateException("Poți re-comanda doar o comandă livrată. Comanda " + originalOrderId + " este " + original.getStatus() + ".");
+            throw new InvalidOrderException("Poți re-comanda doar o comandă livrată. Comanda " + originalOrderId + " este " + original.getStatus() + ".");
 
         String restaurantCity = original.getRestaurant().getAddress().city();
         String deliveryCity = deliveryAddress.city();
         if (!restaurantCity.equalsIgnoreCase(deliveryCity))
-            throw new DeliveryAddressMismatchException(restaurantCity, deliveryCity);
+            throw new InvalidOrderException("Orașul adresei de livrare '" + deliveryCity + "' nu corespunde cu orașul restaurantului '" + restaurantCity + "'.");
 
         String newOrderId = "#" + nextOrderId++;
         Order newOrder = original.toNewOrder(newOrderId, deliveryAddress);
         orders.put(newOrderId, newOrder);
 
-        System.out.println("\nComanda " + newOrder.getId() + " a fost creată pe baza comenzii " + originalOrderId + ".");
-        newOrder.printOrderSummary();
-    }
-
-    public void acceptOrder(String orderId) {
-        Order order = findOrderById(orderId);
-
-        if (order.getStatus() != OrderStatus.PENDING)
-            throw new InvalidOrderStateException("Doar comenzile în așteptare pot fi acceptate. Comanda " + orderId + " este " + order.getStatus() + ".");
-
-        if (!order.updateStatus(OrderStatus.ACCEPTED))
-            throw new InvalidOrderStateException("Nu se poate accepta comanda " + orderId + ".");
-
-        System.out.println("Comanda " + order.getId() + " a fost acceptată de restaurantul " + order.getRestaurant().getName() + ".");
-        assignDriversToPendingOrders();
-    }
-
-    public void startOrderPreparation(String orderId) {
-        Order order = findOrderById(orderId);
-
-        if (order.getStatus() != OrderStatus.ACCEPTED && order.getStatus() != OrderStatus.DRIVER_ASSIGNED)
-            throw new InvalidOrderStateException("Doar comenzile acceptate sau cu curier asignat pot începe prepararea. Comanda " + orderId + " este " + order.getStatus() + ".");
-
-        if (!order.updateStatus(OrderStatus.PREPARING))
-            throw new InvalidOrderStateException("Nu se poate începe prepararea pentru comanda " + orderId + ".");
-
-        System.out.println("Comanda " + order.getId() + " este acum în preparare.");
+        AuditService.getInstance().log("reorder");
     }
 
     public void markOrderReady(String orderId) {
         Order order = findOrderById(orderId);
 
         if (order.getStatus() != OrderStatus.PREPARING)
-            throw new InvalidOrderStateException("Doar comenzile în preparare pot fi marcate ca gata. Comanda " + orderId + " este " + order.getStatus() + ".");
+            throw new InvalidOrderException("Doar comenzile în preparare pot fi marcate ca gata. Comanda " + orderId + " este " + order.getStatus() + ".");
 
         if (!order.updateStatus(OrderStatus.READY_FOR_PICKUP))
-            throw new InvalidOrderStateException("Nu se poate marca comanda " + orderId + " ca gata.");
+            throw new InvalidOrderException("Nu se poate marca comanda " + orderId + " ca gata.");
 
-        System.out.println("Comanda " + order.getId() + " este gata pentru ridicare.");
+        AuditService.getInstance().log("markOrderReady");
+        assignDriversToReadyOrders();
     }
 
     public void pickupOrder(String orderId) {
         Order order = findOrderById(orderId);
 
         if (order.getStatus() != OrderStatus.READY_FOR_PICKUP)
-            throw new InvalidOrderStateException("Doar comenzile gata pot fi ridicate. Comanda " + orderId + " este " + order.getStatus() + ".");
+            throw new InvalidOrderException("Doar comenzile gata pot fi ridicate. Comanda " + orderId + " este " + order.getStatus() + ".");
 
         if (order.getDriver() == null)
-            throw new InvalidOrderStateException("Comanda " + orderId + " nu are un curier asignat.");
+            throw new InvalidOrderException("Comanda " + orderId + " nu are un curier asignat.");
 
         if (!order.updateStatus(OrderStatus.OUT_FOR_DELIVERY))
-            throw new InvalidOrderStateException("Nu se poate ridica comanda " + orderId + ".");
-
-        System.out.println("Comanda " + order.getId() + " este acum în livrare cu curierul " + order.getDriver().getName() + ".");
+            throw new InvalidOrderException("Nu se poate ridica comanda " + orderId + ".");
     }
 
     public void deliverOrder(String orderId) {
         Order order = findOrderById(orderId);
 
         if (order.getStatus() != OrderStatus.OUT_FOR_DELIVERY)
-            throw new InvalidOrderStateException("Doar comenzile aflate în livrare pot fi livrate. Comanda " + orderId + " este " + order.getStatus() + ".");
+            throw new InvalidOrderException("Doar comenzile aflate în livrare pot fi livrate. Comanda " + orderId + " este " + order.getStatus() + ".");
 
         if (!order.updateStatus(OrderStatus.DELIVERED))
-            throw new InvalidOrderStateException("Nu se poate livra comanda " + orderId + ".");
+            throw new InvalidOrderException("Nu se poate livra comanda " + orderId + ".");
 
         Driver driver = order.getDriver();
         if (driver != null)
             driver.setAvailable(true);
 
-        System.out.println("Comanda " + order.getId() + " a fost livrată cu succes.");
-        assignDriversToPendingOrders();
+        AuditService.getInstance().log("deliverOrder");
+        assignDriversToReadyOrders();
     }
 
     public void cancelOrder(String orderId) {
         Order order = findOrderById(orderId);
+        OrderStatus statusBefore = order.getStatus();
 
-        if (!order.cancelOrder())
-            throw new OrderCancellationException(orderId);
+        if (!order.cancelOrder()) {
+            if (statusBefore == OrderStatus.DELIVERED)
+                throw new InvalidOrderException("Comanda " + orderId + " a fost deja livrată și nu poate fi anulată.");
+            throw new InvalidOrderException("Comanda " + orderId + " este deja anulată.");
+        }
 
         Driver driver = order.getDriver();
         if (driver != null)
             driver.setAvailable(true);
 
-        String message = "Comanda " + order.getId() + " a fost anulată.";
-        if (order.getCancellationFee() > 0)
-            message += " Taxă de anulare: " + String.format("%.2f", order.getCancellationFee()) + " lei.";
-        System.out.println(message);
+        AuditService.getInstance().log("cancelOrder");
+        String feeInfo = order.getCancellationFee() > 0 ? " Taxă de anulare: " + String.format("%.2f", order.getCancellationFee()) + " lei." : "";
+        System.out.println("Comanda " + order.getId() + " a fost anulată." + feeInfo);
     }
 
     public void submitReview(String orderId, int rating, String comment) {
         Order order = findOrderById(orderId);
 
         if (order.getStatus() != OrderStatus.DELIVERED)
-            throw new InvalidReviewException("Poți lăsa recenzii doar pentru comenzile livrate. Comanda " + orderId + " este " + order.getStatus() + ".");
+            throw new InvalidOrderException("Poți lăsa recenzii doar pentru comenzile livrate. Comanda " + orderId + " este " + order.getStatus() + ".");
 
         if (order.getReview() != null)
-            throw new InvalidReviewException("Comanda " + orderId + " are deja o recenzie.");
+            throw new InvalidOrderException("Comanda " + orderId + " are deja o recenzie.");
 
         if (rating < 1 || rating > 5)
-            throw new InvalidReviewException("Nota trebuie să fie între 1 și 5. Valoare primită: " + rating + ".");
+            throw new InvalidOrderException("Nota trebuie să fie între 1 și 5. Valoare primită: " + rating + ".");
 
         Review review = new Review(String.valueOf(reviews.size() + 1), order.getCustomer(), order, rating, comment);
         order.setReview(review);
         reviews.add(review);
 
+        AuditService.getInstance().log("submitReview");
         Restaurant restaurant = order.getRestaurant();
         int newCount = restaurant.getReviewCount() + 1;
         double newStars = (restaurant.getStars() * restaurant.getReviewCount() + rating) / newCount;
         restaurant.setReviewCount(newCount);
         restaurant.setStars(newStars);
-
-        System.out.println("Recenzie trimisă pentru comanda " + orderId + " (" + restaurant.getName() + "): " + rating + "/5 stele - " + comment);
     }
 
     public void getCustomerOrderHistory(String customerId) {
@@ -201,7 +198,7 @@ public class OrderService {
 
     public void displayOrderDetails(String orderId) {
         Order order = findOrderById(orderId);
-        order.printOrderSummary();
+        System.out.print(order.toSummaryString());
 
         if (order.getReview() == null)
             System.out.println("Nu există încă recenzie.");
@@ -233,26 +230,30 @@ public class OrderService {
         System.out.println("==================================\n");
     }
 
-    private void assignDriversToPendingOrders() {
+    private void assignDriversToReadyOrders() {
         for (Order order : orders.values()) {
-            if (order.getStatus() == OrderStatus.ACCEPTED && order.getDriver() == null) {
+            if (order.getStatus() == OrderStatus.READY_FOR_PICKUP && order.getDriver() == null) {
                 Driver driver = userService.findAvailableDriver();
                 if (driver == null)
                     break;
-
                 order.setDriver(driver);
                 driver.setAvailable(false);
-                order.updateStatus(OrderStatus.DRIVER_ASSIGNED);
-
-                System.out.println("Curierul " + driver.getName() + " a fost asignat automat comenzii " + order.getId() + ".");
             }
         }
+    }
+
+    public List<Order> getOrdersByCustomer(String customerId) {
+        List<Order> result = new ArrayList<>();
+        for (Order order : orders.values())
+            if (order.getCustomer().getId().equals(customerId))
+                result.add(order);
+        return result;
     }
 
     private Order findOrderById(String id) {
         Order order = orders.get(id);
         if (order == null)
-            throw new OrderNotFoundException(id);
+            throw new EntityNotFoundException("Comanda " + id + " nu a fost găsită.");
         return order;
     }
 }

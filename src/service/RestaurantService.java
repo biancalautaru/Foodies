@@ -1,6 +1,6 @@
 package service;
 
-import exceptions.RestaurantNotFoundException;
+import exceptions.EntityNotFoundException;
 import models.*;
 
 import java.util.ArrayList;
@@ -18,13 +18,13 @@ public class RestaurantService {
 
     public void addRestaurant(Restaurant restaurant) {
         restaurants.put(restaurant.getId(), restaurant);
-        System.out.println("Restaurant adăugat: " + restaurant.getName());
+        AuditService.getInstance().log("addRestaurant");
     }
 
     public void addMenuItemToRestaurant(String restaurantId, MenuItem item) {
         Restaurant restaurant = findRestaurantById(restaurantId);
         restaurant.addMenuItem(item);
-        System.out.println("Produsul '" + item.getName() + "' a fost adăugat la restaurantul " + restaurant.getName() + ".");
+        AuditService.getInstance().log("addMenuItemToRestaurant");
     }
 
     public void displayAllRestaurants() {
@@ -56,25 +56,17 @@ public class RestaurantService {
     }
 
     public void displayRestaurantsSortedByRating() {
-        System.out.println("\n===== TOATE RESTAURANTELE (cel mai bine evaluate primele) =====");
+        System.out.println("\n===== TOATE RESTAURANTELE (cele mai bine evaluate primele) =====");
         int index = 1;
         for (Restaurant restaurant : getRestaurantsSortedByRating())
             System.out.println(index++ + ". " + restaurant);
         System.out.println("=============================================\n");
     }
 
-    public void displayRestaurantMenu(String restaurantId) {
-        Restaurant restaurant = findRestaurantById(restaurantId);
-        System.out.println("\n===== MENIU: " + restaurant.getName() + " =====");
-        for (MenuItem item : restaurant.getMenu())
-            System.out.println("  " + item);
-        System.out.println("==========================\n");
-    }
-
     public Restaurant findRestaurantById(String id) {
         Restaurant restaurant = restaurants.get(id);
         if (restaurant == null)
-            throw new RestaurantNotFoundException(id);
+            throw new EntityNotFoundException("Restaurantul " + id + " nu a fost găsit.");
         return restaurant;
     }
 }
