@@ -2,6 +2,6 @@ package exceptions;
 
 public class OrderNotFoundException extends FoodiesException {
     public OrderNotFoundException(String orderId) {
-        super("Order not found: " + orderId);
+        super("Comanda " + orderId + " nu a fost găsită.");
     }
 }

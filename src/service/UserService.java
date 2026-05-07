@@ -16,12 +16,12 @@ public class UserService {
 
     public void addCustomer(Customer customer) {
         customers.add(customer);
-        System.out.println("Customer added: " + customer.getName());
+        System.out.println("Client adăugat: " + customer.getName());
     }
 
     public void addDriver(Driver driver) {
         drivers.add(driver);
-        System.out.println("Driver added: " + driver.getName());
+        System.out.println("Curier adăugat: " + driver.getName());
     }
 
     public Driver findAvailableDriver() {

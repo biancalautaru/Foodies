@@ -13,6 +13,6 @@ public record Review(String id, Customer customer, Order order, int rating, Stri
 
     @Override
     public String toString() {
-        return customer.getName() + " [" + date.format(FORMATTER) + "]: " + rating + "/5 stars - " + comment;
+        return customer.getName() + " [" + date.format(FORMATTER) + "]: " + rating + "/5 stele - " + comment;
     }
 }

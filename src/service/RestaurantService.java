@@ -18,19 +18,20 @@ public class RestaurantService {
 
     public void addRestaurant(Restaurant restaurant) {
         restaurants.put(restaurant.getId(), restaurant);
-        System.out.println("Restaurant added: " + restaurant.getName());
+        System.out.println("Restaurant adăugat: " + restaurant.getName());
     }
 
     public void addMenuItemToRestaurant(String restaurantId, MenuItem item) {
         Restaurant restaurant = findRestaurantById(restaurantId);
         restaurant.addMenuItem(item);
-        System.out.println("Item '" + item.getName() + "' added to restaurant " + restaurant.getName() + ".");
+        System.out.println("Produsul '" + item.getName() + "' a fost adăugat la restaurantul " + restaurant.getName() + ".");
     }
 
     public void displayAllRestaurants() {
-        System.out.println("\n===== ALL RESTAURANTS =====");
+        System.out.println("\n===== TOATE RESTAURANTELE =====");
+        int index = 1;
         for (Restaurant restaurant : restaurants.values())
-            System.out.println(restaurant);
+            System.out.println(index++ + ". " + restaurant);
         System.out.println("============================\n");
     }
 
@@ -47,22 +48,24 @@ public class RestaurantService {
     }
 
     public void displayRestaurantsSortedByName() {
-        System.out.println("\n===== ALL RESTAURANTS (A-Z) =====");
+        System.out.println("\n===== TOATE RESTAURANTELE (A-Z) =====");
+        int index = 1;
         for (Restaurant restaurant : getRestaurantsSortedByName())
-            System.out.println(restaurant);
+            System.out.println(index++ + ". " + restaurant);
         System.out.println("=================================\n");
     }
 
     public void displayRestaurantsSortedByRating() {
-        System.out.println("\n===== ALL RESTAURANTS (top rated first) =====");
+        System.out.println("\n===== TOATE RESTAURANTELE (cel mai bine evaluate primele) =====");
+        int index = 1;
         for (Restaurant restaurant : getRestaurantsSortedByRating())
-            System.out.println(restaurant);
+            System.out.println(index++ + ". " + restaurant);
         System.out.println("=============================================\n");
     }
 
     public void displayRestaurantMenu(String restaurantId) {
         Restaurant restaurant = findRestaurantById(restaurantId);
-        System.out.println("\n===== MENU: " + restaurant.getName() + " =====");
+        System.out.println("\n===== MENIU: " + restaurant.getName() + " =====");
         for (MenuItem item : restaurant.getMenu())
             System.out.println("  " + item);
         System.out.println("==========================\n");

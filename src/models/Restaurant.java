@@ -12,8 +12,17 @@ public class Restaurant implements Comparable<Restaurant> {
     private double stars;
     private int reviewCount;
 
-    public static final Comparator<Restaurant> BY_RATING =
-            Comparator.comparingDouble(Restaurant::getStars).reversed();
+    public static final Comparator<Restaurant> BY_RATING = (a, b) -> {
+        boolean aNoReviews = a.getReviewCount() == 0;
+        boolean bNoReviews = b.getReviewCount() == 0;
+        if (aNoReviews && bNoReviews)
+            return a.getName().compareToIgnoreCase(b.getName());
+        if (aNoReviews) return 1;
+        if (bNoReviews) return -1;
+        int cmp = Double.compare(b.getStars(), a.getStars());
+        if (cmp != 0) return cmp;
+        return a.getName().compareToIgnoreCase(b.getName());
+    };
 
     public Restaurant(String id, String name, Address address) {
         this.id = id;
@@ -64,8 +73,8 @@ public class Restaurant implements Comparable<Restaurant> {
     @Override
     public String toString() {
         if (reviewCount == 0)
-            return id + ": " + name + " (No reviews)";
-        return id + ": " + name + " (" + String.format("%.2f", stars) + "/5 stars from " + reviewCount + " reviews)";
+            return name + " (Fără recenzii)";
+        return id + ": " + name + " (" + String.format("%.2f", stars) + "/5 stele din " + reviewCount + " recenzii)";
     }
 
     public void addMenuItem(MenuItem menuItem) {

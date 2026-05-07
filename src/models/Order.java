@@ -143,25 +143,25 @@ public class Order implements Cloneable {
     }
 
     public void printOrderSummary() {
-        System.out.println("\n========== ORDER SUMMARY ==========");
-        System.out.println("Order ID: " + id);
-        System.out.println("Date: " + date.format(FORMATTER));
-        System.out.println("Customer: " + customer.getName());
+        System.out.println("\n========== REZUMAT COMANDĂ ==========");
+        System.out.println("ID comandă: " + id);
+        System.out.println("Data: " + date.format(FORMATTER));
+        System.out.println("Client: " + customer.getName());
         System.out.println("Restaurant: " + restaurant.getName());
-        System.out.println("Delivery to: " + deliveryAddress);
-        System.out.println("Status: " + status);
+        System.out.println("Livrare la: " + deliveryAddress);
+        System.out.println("Stare: " + status);
 
-        System.out.println("\n--- Items ---");
+        System.out.println("\n--- Produse ---");
         for (MenuItem item : items)
             System.out.println(item.getName() + " - " + String.format("%.2f", item.getPrice()) + " lei");
 
-        System.out.println("\n--- Pricing ---");
-        System.out.println("Subtotal: " + String.format("%.2f", getSubtotal()) + " lei");
-        System.out.println("Delivery Fee: " + String.format("%.2f", getDeliveryFee()) + " lei");
+        System.out.println("\n--- Costuri ---");
+        System.out.println("Valoare produse: " + String.format("%.2f", getSubtotal()) + " lei");
+        System.out.println("Taxă livrare: " + String.format("%.2f", getDeliveryFee()) + " lei");
         System.out.println("TOTAL: " + String.format("%.2f", getTotal()) + " lei");
 
         if (driver != null)
-            System.out.println("Driver: " + driver.getName());
+            System.out.println("Curier: " + driver.getName());
 
         System.out.println("==================================\n");
     }
@@ -173,7 +173,7 @@ public class Order implements Cloneable {
             cloned.items = new ArrayList<>(this.items);
             return cloned;
         } catch (CloneNotSupportedException e) {
-            throw new AssertionError("Order is Cloneable - this should never happen", e);
+            throw new AssertionError("Clasa Order este Cloneable - nu ar trebui să se întâmple", e);
         }
     }
 

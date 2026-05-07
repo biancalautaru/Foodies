@@ -32,7 +32,7 @@ public class Cart implements Cloneable {
             throw new MixedRestaurantCartException(this.restaurant.getName(), itemRestaurant.getName());
 
         items.add(item);
-        System.out.println("Item '" + item.getName() + "' added to cart.");
+        System.out.println("Produsul '" + item.getName() + "' a fost adăugat în coș.");
     }
 
     public void clearCart() {
@@ -51,7 +51,7 @@ public class Cart implements Cloneable {
             cloned.items = new ArrayList<>(this.items);
             return cloned;
         } catch (CloneNotSupportedException e) {
-            throw new AssertionError("Cart is Cloneable - this should never happen", e);
+            throw new AssertionError("Clasa Cart este Cloneable - nu ar trebui să se întâmple", e);
         }
     }
 }

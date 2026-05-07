@@ -2,6 +2,6 @@ package exceptions;
 
 public class RestaurantNotFoundException extends FoodiesException {
     public RestaurantNotFoundException(String restaurantId) {
-        super("Restaurant not found: " + restaurantId);
+        super("Restaurantul " + restaurantId + " nu a fost găsit.");
     }
 }

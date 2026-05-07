@@ -2,6 +2,6 @@ package exceptions;
 
 public class OrderCancellationException extends FoodiesException {
     public OrderCancellationException(String orderId) {
-        super("Cannot cancel order " + orderId + " because it is currently out for delivery.");
+        super("Nu se poate anula comanda " + orderId + " - este deja în curs de livrare.");
     }
 }

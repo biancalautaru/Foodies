@@ -28,7 +28,7 @@ public class MenuService {
 
     public void displayMenuSortedByName(String restaurantId) {
         Restaurant restaurant = restaurantService.findRestaurantById(restaurantId);
-        System.out.println("\n===== MENU (A-Z): " + restaurant.getName() + " =====");
+        System.out.println("\n===== MENIU (A-Z): " + restaurant.getName() + " =====");
         for (MenuItem item : getMenuSortedByName(restaurantId))
             System.out.println("  " + item);
         System.out.println("==========================\n");
@@ -36,7 +36,7 @@ public class MenuService {
 
     public void displayMenuSortedByPrice(String restaurantId) {
         Restaurant restaurant = restaurantService.findRestaurantById(restaurantId);
-        System.out.println("\n===== MENU (cheapest first): " + restaurant.getName() + " =====");
+        System.out.println("\n===== MENIU (cele mai ieftine primele): " + restaurant.getName() + " =====");
         for (MenuItem item : getMenuSortedByPrice(restaurantId))
             System.out.println("  " + item);
         System.out.println("==========================\n");
