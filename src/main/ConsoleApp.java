@@ -36,12 +36,14 @@ public class ConsoleApp {
                 case "4" -> showMyOrders();
                 case "5" -> leaveReview();
                 case "6" -> repeatOrder();
-                case "7" -> cancelMyOrder();
-                case "8" -> {
+                case "7" -> viewOrderDetails();
+                case "8" -> browseRestaurantReviews();
+                case "9" -> findRestaurantsByName();
+                case "10" -> {
                     System.out.println("\nLa revedere, " + currentUser.getName() + "!\n");
                     running = false;
                 }
-                default -> System.out.println("Opțiune invalidă. Alege un număr între 0 și 7.\n");
+                default -> System.out.println("Opțiune invalidă. Alege un număr între 1 și 10.\n");
             }
         }
         scanner.close();
@@ -72,8 +74,10 @@ public class ConsoleApp {
         System.out.println("|  4. Comenzile mele                     |");
         System.out.println("|  5. Lasă recenzie                      |");
         System.out.println("|  6. Repetă o comandă anterioară        |");
-        System.out.println("|  7. Anulează o comandă activă          |");
-        System.out.println("|  8. Ieșire                             |");
+        System.out.println("|  7. Detalii comandă                    |");
+        System.out.println("|  8. Recenzii restaurant                |");
+        System.out.println("|  9. Restaurante după nume              |");
+        System.out.println("|  10. Ieșire                            |");
         System.out.println("|-----------------------------------------");
         System.out.print("Opțiune selectată: ");
     }
@@ -273,88 +277,103 @@ public class ConsoleApp {
         }
     }
 
-    // 7. Anulează o comandă activă
-    private void cancelMyOrder() {
-        List<Order> cancellable = new ArrayList<>();
-        for (Order o : orderService.getOrdersByCustomer(currentUser.getId()))
-            if (o.getStatus() == OrderStatus.PENDING
-                    || o.getStatus() == OrderStatus.PREPARING
-                    || o.getStatus() == OrderStatus.READY_FOR_PICKUP
-                    || o.getStatus() == OrderStatus.OUT_FOR_DELIVERY)
-                cancellable.add(o);
-
-        if (cancellable.isEmpty()) {
-            System.out.println("\nNu ai comenzi active care pot fi anulate.\n");
+    // 7. Detalii comandă
+    private void viewOrderDetails() {
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd.MM.yyyy, HH:mm");
+        List<Order> orders = orderService.getOrdersByCustomer(currentUser.getId());
+        if (orders.isEmpty()) {
+            System.out.println("\nNu ai comenzi înregistrate.\n");
             return;
         }
-
-        System.out.println("\nComenzi active:");
-        for (int i = 0; i < cancellable.size(); i++) {
-            Order o = cancellable.get(i);
-            double potentialFee = o.getPotentialCancellationFee();
-            String fee = potentialFee == 0
-                    ? "fără taxă"
-                    : "taxă: " + String.format("%.2f", potentialFee) + " lei";
-            System.out.println("  " + (i + 1) + ". " + o.getId() + " — " + o.getRestaurant().getName() + " | " + o.getStatus().getLabel() + " | " + fee);
+        System.out.println("\nAlegeți comanda:");
+        for (int i = 0; i < orders.size(); i++) {
+            Order o = orders.get(i);
+            System.out.println("  " + (i + 1) + ". " + o.getId() + " — " + o.getRestaurant().getName() +
+                    " | " + o.getDate().format(formatter) + " | " + o.getStatus().getLabel());
         }
-        System.out.print("Alege comanda de anulat (0 pentru renunțare): ");
+        System.out.print("Număr: ");
         int choice = readInt();
-        if (choice < 1 || choice > cancellable.size()) {
-            System.out.println("Anulare abandonată.\n");
+        if (choice < 1 || choice > orders.size()) {
+            System.out.println("Opțiune invalidă.\n");
             return;
         }
-        Order toCancel = cancellable.get(choice - 1);
-        try {
-            orderService.cancelOrder(toCancel.getId());
-            String feeInfo = toCancel.getCancellationFee() > 0
-                    ? " Taxă de anulare: " + String.format("%.2f", toCancel.getCancellationFee()) + " lei."
-                    : "";
-            System.out.println("Comanda " + toCancel.getId() + " a fost anulată." + feeInfo + "\n");
-        } catch (Exception e) {
-            System.out.println("Eroare: " + e.getMessage() + "\n");
+        Order selected = orders.get(choice - 1);
+        System.out.println("\n===== DETALII COMANDĂ " + selected.getId() + " =====");
+        System.out.println("Restaurant: " + selected.getRestaurant().getName());
+        System.out.println("Data: " + selected.getDate().format(formatter));
+        System.out.println("Stare: " + selected.getStatus().getLabel());
+        System.out.println("Produse:");
+        for (MenuItem item : selected.getItems())
+            System.out.println("  - " + item.getName() + " — " + String.format("%.2f", item.getPrice()) + " lei");
+        System.out.println("Subtotal: " + String.format("%.2f", selected.getSubtotal()) + " lei");
+        System.out.println("Livrare: " + String.format("%.2f", selected.getDeliveryFee()) + " lei");
+        System.out.println("Total: " + String.format("%.2f", selected.getTotal()) + " lei");
+        if (selected.getReview() != null)
+            System.out.println("Recenzia ta: " + selected.getReview().rating() + "/5 — " + selected.getReview().comment());
+        System.out.println("==========================================\n");
+    }
+
+    // 8. Recenzii restaurant
+    private void browseRestaurantReviews() {
+        List<Restaurant> list = restaurantService.getRestaurantsSortedByRating();
+        System.out.println("\nAlegeți restaurantul:");
+        for (int i = 0; i < list.size(); i++)
+            System.out.println("  " + (i + 1) + ". " + list.get(i).getName());
+        System.out.print("Număr: ");
+        int choice = readInt();
+        if (choice < 1 || choice > list.size()) {
+            System.out.println("Opțiune invalidă.\n");
+            return;
         }
+        Restaurant chosen = list.get(choice - 1);
+        List<Review> reviews = chosen.getReviews();
+        System.out.println("\n===== RECENZII: " + chosen.getName() + " =====");
+        if (reviews.isEmpty()) {
+            System.out.println("Nicio recenzie disponibilă.");
+        } else {
+            for (Review r : reviews)
+                System.out.println("  " + r);
+        }
+        System.out.println("==========================================\n");
+    }
+
+    // 9. Restaurante după nume
+    private void findRestaurantsByName() {
+        System.out.println("\n===== RESTAURANTE (ordine alfabetică) =====");
+        int index = 1;
+        for (Restaurant restaurant : restaurantService.getRestaurantsSortedByName())
+            System.out.println(index++ + ". " + restaurant);
+        System.out.println("==========================================\n");
     }
 
     // Simulare progres comanda
     private boolean simulateOrderProgression(String orderId, Order order) {
-        // Restaurantul confirma comanda (PENDING -> PREPARING)
-        System.out.print("Apasă Enter când restaurantul confirmă comanda, sau 'c' pentru a anula (fără taxă): ");
+        // Restaurantul confirma sau anuleaza comanda (PENDING -> PREPARING / CANCELLED)
+        System.out.print("Apasă Enter când restaurantul confirmă comanda, sau 'c' pentru ca restaurantul să anuleze: ");
         if (scanner.nextLine().trim().equalsIgnoreCase("c")) {
-            orderService.cancelOrder(orderId);
-            System.out.println();
+            orderService.restaurantCancelOrder(orderId);
+            System.out.println("Comanda " + orderId + " a fost anulată de restaurant.\n");
             return false;
         }
         orderService.confirmOrder(orderId);
         System.out.println("Comanda a fost confirmată de restaurant. Stare: " + order.getStatus().getLabel() + ". [" + order.getStatusChangeTime() + "]");
 
         // Restaurantul marcheaza comanda gata (PREPARING -> READY_FOR_PICKUP)
-        System.out.print("Apasă Enter când restaurantul marchează comanda gata, sau 'c' pentru a anula (fără taxă): ");
-        if (scanner.nextLine().trim().equalsIgnoreCase("c")) {
-            orderService.cancelOrder(orderId);
-            System.out.println();
-            return false;
-        }
+        System.out.print("Apasă Enter când restaurantul marchează comanda gata: ");
+        scanner.nextLine();
         orderService.markOrderReady(orderId);
         String driverName = order.getDriver() != null ? order.getDriver().getName() : "necunoscut";
         System.out.println("Comanda e gata de ridicare (" + order.getStatus().getLabel() + "). Curier asignat: " + driverName + ". [" + order.getStatusChangeTime() + "]");
 
         // Curierul ridica comanda (READY_FOR_PICKUP -> OUT_FOR_DELIVERY)
-        System.out.print("Apasă Enter când curierul ridică comanda, sau 'c' pentru a anula (taxă 20%): ");
-        if (scanner.nextLine().trim().equalsIgnoreCase("c")) {
-            orderService.cancelOrder(orderId);
-            System.out.println();
-            return false;
-        }
+        System.out.print("Apasă Enter când curierul ridică comanda: ");
+        scanner.nextLine();
         orderService.pickupOrder(orderId);
         System.out.println("Stare: " + order.getStatus().getLabel() + ". [" + order.getStatusChangeTime() + "]");
 
         // Comanda este livrata (OUT_FOR_DELIVERY -> DELIVERED)
-        System.out.print("Apasă Enter când comanda este livrată, sau 'c' pentru a anula (taxă 100%): ");
-        if (scanner.nextLine().trim().equalsIgnoreCase("c")) {
-            orderService.cancelOrder(orderId);
-            System.out.println();
-            return false;
-        }
+        System.out.print("Apasă Enter când comanda este livrată: ");
+        scanner.nextLine();
         orderService.deliverOrder(orderId);
         return true;
     }
