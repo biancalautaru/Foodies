@@ -3,9 +3,10 @@ package models;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
-public class Order implements Cloneable {
+public class Order {
     private String id;
     private LocalDateTime date;
     private Customer customer;
@@ -19,7 +20,6 @@ public class Order implements Cloneable {
     private double cancellationFee;
 
     private static final double DELIVERY_FEE = 10;
-    private static final DateTimeFormatter FORMATTER = DateTimeFormatter.ofPattern("dd.MM.yyyy, HH:mm");
 
     public Order(String id, Customer customer, Restaurant restaurant, Address deliveryAddress) {
         this.id = id;
@@ -61,6 +61,10 @@ public class Order implements Cloneable {
         return status;
     }
 
+    public String getStatusChangeTime() {
+        return statusChangeTime.format(DateTimeFormatter.ofPattern("HH:mm"));
+    }
+
     public Review getReview() {
         return review;
     }
@@ -71,6 +75,17 @@ public class Order implements Cloneable {
 
     public double getCancellationFee() {
         return cancellationFee;
+    }
+
+    public double getPotentialCancellationFee() {
+        switch (status) {
+            case READY_FOR_PICKUP:
+                return 0.30 * getSubtotal();
+            case OUT_FOR_DELIVERY:
+                return getSubtotal() + DELIVERY_FEE;
+            default:
+                return 0;
+        }
     }
 
     public double getSubtotal() {
@@ -86,6 +101,10 @@ public class Order implements Cloneable {
 
     public double getTotal() {
         return getSubtotal() + getDeliveryFee();
+    }
+
+    public List<MenuItem> getItems() {
+        return Collections.unmodifiableList(items);
     }
 
     public void addItem(MenuItem item) {
@@ -147,60 +166,22 @@ public class Order implements Cloneable {
         }
     }
 
-    private String statusToRomanian() {
-        switch (status) {
-            case PENDING:          return "În așteptare";
-            case PREPARING:        return "În preparare";
-            case READY_FOR_PICKUP: return "Gata de ridicare";
-            case OUT_FOR_DELIVERY: return "În livrare";
-            case DELIVERED:        return "Livrată";
-            case CANCELLED:        return "Anulată";
-            default:               return status.toString();
-        }
-    }
-
-    public String toSummaryString() {
-        StringBuilder sb = new StringBuilder();
-        sb.append("\n========== REZUMAT COMANDĂ ==========\n");
-        sb.append("ID comandă: ").append(id).append("\n");
-        sb.append("Data: ").append(date.format(FORMATTER)).append("\n");
-        sb.append("Client: ").append(customer.getName()).append("\n");
-        sb.append("Restaurant: ").append(restaurant.getName()).append("\n");
-        sb.append("Livrare la: ").append(deliveryAddress).append("\n");
-        sb.append("Stare: ").append(statusToRomanian()).append("\n");
-
-        sb.append("\n--- Produse ---\n");
-        for (MenuItem item : items)
-            sb.append(item.getName()).append(" - ").append(String.format("%.2f", item.getPrice())).append(" lei\n");
-
-        sb.append("\n--- Costuri ---\n");
-        sb.append("Valoare produse: ").append(String.format("%.2f", getSubtotal())).append(" lei\n");
-        sb.append("Taxă livrare: ").append(String.format("%.2f", getDeliveryFee())).append(" lei\n");
-        sb.append("TOTAL: ").append(String.format("%.2f", getTotal())).append(" lei\n");
-
-        if (status == OrderStatus.CANCELLED)
-            sb.append("Taxă anulare: ").append(String.format("%.2f", cancellationFee)).append(" lei\n");
-
-        if (driver != null)
-            sb.append("Curier: ").append(driver.getName()).append("\n");
-
-        sb.append("==================================\n");
-        return sb.toString();
-    }
-
-    @Override
-    protected Order clone() {
-        try {
-            Order cloned = (Order) super.clone();
-            cloned.items = new ArrayList<>(this.items);
-            return cloned;
-        } catch (CloneNotSupportedException e) {
-            throw new AssertionError("Clasa Order este Cloneable", e);
-        }
+    private Order(Order source) {
+        this.id = source.id;
+        this.date = source.date;
+        this.customer = source.customer;
+        this.restaurant = source.restaurant;
+        this.deliveryAddress = source.deliveryAddress;
+        this.driver = source.driver;
+        this.items = new ArrayList<>(source.items);
+        this.status = source.status;
+        this.review = source.review;
+        this.statusChangeTime = source.statusChangeTime;
+        this.cancellationFee = source.cancellationFee;
     }
 
     public Order toNewOrder(String newId, Address newDeliveryAddress) {
-        Order newOrder = clone();
+        Order newOrder = new Order(this);
         newOrder.id = newId;
         newOrder.date = LocalDateTime.now();
         newOrder.deliveryAddress = newDeliveryAddress;

@@ -4,7 +4,6 @@ import exceptions.EntityNotFoundException;
 import exceptions.InvalidOrderException;
 import models.*;
 
-import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -12,17 +11,13 @@ import java.util.Map;
 
 public class OrderService {
     private Map<String, Order> orders;
-    private List<Review> reviews;
     private int nextOrderId;
     private UserService userService;
-    private RestaurantService restaurantService;
 
-    public OrderService(UserService userService, RestaurantService restaurantService) {
+    public OrderService(UserService userService) {
         this.orders = new LinkedHashMap<>();
-        this.reviews = new ArrayList<>();
         this.nextOrderId = 1;
         this.userService = userService;
-        this.restaurantService = restaurantService;
     }
 
     public void placeOrder(Customer customer, Address address) {
@@ -70,7 +65,6 @@ public class OrderService {
 
         order.cancelOrder();
         AuditService.getInstance().log("restaurantCancelOrder");
-        System.out.println("Comanda " + orderId + " a fost anulată de restaurant.");
     }
 
     public void reorder(Customer customer, String originalOrderId, Address deliveryAddress) {
@@ -152,8 +146,6 @@ public class OrderService {
             driver.setAvailable(true);
 
         AuditService.getInstance().log("cancelOrder");
-        String feeInfo = order.getCancellationFee() > 0 ? " Taxă de anulare: " + String.format("%.2f", order.getCancellationFee()) + " lei." : "";
-        System.out.println("Comanda " + order.getId() + " a fost anulată." + feeInfo);
     }
 
     public void submitReview(String orderId, int rating, String comment) {
@@ -168,66 +160,12 @@ public class OrderService {
         if (rating < 1 || rating > 5)
             throw new InvalidOrderException("Nota trebuie să fie între 1 și 5. Valoare primită: " + rating + ".");
 
-        Review review = new Review(String.valueOf(reviews.size() + 1), order.getCustomer(), order, rating, comment);
+        Restaurant restaurant = order.getRestaurant();
+        Review review = new Review(String.valueOf(restaurant.getReviewCount() + 1), order.getCustomer(), order.getId(), rating, comment);
         order.setReview(review);
-        reviews.add(review);
+        restaurant.addReview(review);
 
         AuditService.getInstance().log("submitReview");
-        Restaurant restaurant = order.getRestaurant();
-        int newCount = restaurant.getReviewCount() + 1;
-        double newStars = (restaurant.getStars() * restaurant.getReviewCount() + rating) / newCount;
-        restaurant.setReviewCount(newCount);
-        restaurant.setStars(newStars);
-    }
-
-    public void getCustomerOrderHistory(String customerId) {
-        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd.MM.yyyy, HH:mm");
-
-        System.out.println("\n===== ISTORIC COMENZI =====");
-        boolean foundOrders = false;
-        for (Order order : orders.values())
-            if (order.getCustomer().getId().equals(customerId)) {
-                System.out.println("Comanda " + order.getId() + " | " + order.getDate().format(formatter) + " | " + order.getRestaurant().getName() + " | " + order.getStatus() + " | " + String.format("%.2f", order.getTotal()) + " lei");
-                foundOrders = true;
-            }
-
-        if (!foundOrders)
-            System.out.println("Nu s-au găsit comenzi.");
-        System.out.println("=========================\n");
-    }
-
-    public void displayOrderDetails(String orderId) {
-        Order order = findOrderById(orderId);
-        System.out.print(order.toSummaryString());
-
-        if (order.getReview() == null)
-            System.out.println("Nu există încă recenzie.");
-        else {
-            System.out.println("Notă: " + order.getReview().rating() + "/5 stele");
-            System.out.println("Comentariu: " + order.getReview().comment());
-        }
-    }
-
-    public void displayRestaurantReviews(String restaurantId) {
-        Restaurant restaurant = restaurantService.findRestaurantById(restaurantId);
-
-        System.out.println("\n===== RECENZII PENTRU " + restaurant.getName() + " =====");
-        int count = 0;
-        double totalRating = 0;
-
-        for (Review review : reviews)
-            if (review.order().getRestaurant().getId().equals(restaurantId)) {
-                System.out.println(review.customer().getName() + ": " + review.rating() + "/5 stele - " + review.comment());
-                totalRating += review.rating();
-                count++;
-            }
-
-        if (count > 0)
-            System.out.println("Notă medie: " + String.format("%.1f", totalRating / count) + "/5");
-        else
-            System.out.println("Nu există încă recenzii.");
-
-        System.out.println("==================================\n");
     }
 
     private void assignDriversToReadyOrders() {

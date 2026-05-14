@@ -1,6 +1,7 @@
 package models;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 
@@ -9,8 +10,7 @@ public class Restaurant implements Comparable<Restaurant> {
     private String name;
     private Address address;
     private List<MenuItem> menu;
-    private double stars;
-    private int reviewCount;
+    private List<Review> reviews;
 
     public static final Comparator<Restaurant> BY_RATING = (a, b) -> {
         boolean aNoReviews = a.getReviewCount() == 0;
@@ -21,7 +21,7 @@ public class Restaurant implements Comparable<Restaurant> {
             return 1;
         if (bNoReviews)
             return -1;
-        int cmp = Double.compare(b.getStars(), a.getStars());
+        int cmp = Double.compare(b.getAverageRating(), a.getAverageRating());
         if (cmp != 0)
             return cmp;
         return a.getName().compareToIgnoreCase(b.getName());
@@ -32,8 +32,7 @@ public class Restaurant implements Comparable<Restaurant> {
         this.name = name;
         this.address = address;
         this.menu = new ArrayList<>();
-        this.stars = 0.0;
-        this.reviewCount = 0;
+        this.reviews = new ArrayList<>();
     }
 
     public String getId() {
@@ -49,28 +48,11 @@ public class Restaurant implements Comparable<Restaurant> {
     }
 
     public List<MenuItem> getMenu() {
-        return menu;
+        return Collections.unmodifiableList(menu);
     }
 
-    public double getStars() {
-        return stars;
-    }
-
-    public void setStars(double stars) {
-        this.stars = stars;
-    }
-
-    public int getReviewCount() {
-        return reviewCount;
-    }
-
-    public void setReviewCount(int reviewCount) {
-        this.reviewCount = reviewCount;
-    }
-
-    @Override
-    public int compareTo(Restaurant other) {
-        return this.name.compareToIgnoreCase(other.name);
+    public List<Review> getReviews() {
+        return Collections.unmodifiableList(reviews);
     }
 
     public void addMenuItem(MenuItem menuItem) {
@@ -78,10 +60,32 @@ public class Restaurant implements Comparable<Restaurant> {
         menuItem.setRestaurant(this);
     }
 
+    public void addReview(Review review) {
+        reviews.add(review);
+    }
+
+    public int getReviewCount() {
+        return reviews.size();
+    }
+
+    public double getAverageRating() {
+        if (reviews.isEmpty())
+            return 0.0;
+        int sum = 0;
+        for (Review r : reviews)
+            sum += r.rating();
+        return (double) sum / reviews.size();
+    }
+
+    @Override
+    public int compareTo(Restaurant other) {
+        return this.name.compareToIgnoreCase(other.name);
+    }
+
     @Override
     public String toString() {
-        if (reviewCount == 0)
+        if (getReviewCount() == 0)
             return name + " (Nicio recenzie)";
-        return id + ": " + name + " (" + String.format("%.2f", stars) + "/5 stele din " + reviewCount + " recenzii)";
+        return name + " (" + String.format("%.2f", getAverageRating()) + "/5 stele din " + getReviewCount() + " recenzii)";
     }
 }

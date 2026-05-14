@@ -27,14 +27,6 @@ public class RestaurantService {
         AuditService.getInstance().log("addMenuItemToRestaurant");
     }
 
-    public void displayAllRestaurants() {
-        System.out.println("\n===== TOATE RESTAURANTELE =====");
-        int index = 1;
-        for (Restaurant restaurant : restaurants.values())
-            System.out.println(index++ + ". " + restaurant);
-        System.out.println("============================\n");
-    }
-
     public List<Restaurant> getRestaurantsSortedByName() {
         List<Restaurant> sorted = new ArrayList<>(restaurants.values());
         Collections.sort(sorted);
@@ -45,22 +37,6 @@ public class RestaurantService {
         List<Restaurant> sorted = new ArrayList<>(restaurants.values());
         sorted.sort(Restaurant.BY_RATING);
         return sorted;
-    }
-
-    public void displayRestaurantsSortedByName() {
-        System.out.println("\n===== TOATE RESTAURANTELE (A-Z) =====");
-        int index = 1;
-        for (Restaurant restaurant : getRestaurantsSortedByName())
-            System.out.println(index++ + ". " + restaurant);
-        System.out.println("=================================\n");
-    }
-
-    public void displayRestaurantsSortedByRating() {
-        System.out.println("\n===== TOATE RESTAURANTELE (cele mai bine evaluate primele) =====");
-        int index = 1;
-        for (Restaurant restaurant : getRestaurantsSortedByRating())
-            System.out.println(index++ + ". " + restaurant);
-        System.out.println("=============================================\n");
     }
 
     public Restaurant findRestaurantById(String id) {

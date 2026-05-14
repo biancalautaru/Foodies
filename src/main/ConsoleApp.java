@@ -3,6 +3,7 @@ package main;
 import models.*;
 import service.*;
 
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Scanner;
@@ -79,7 +80,11 @@ public class ConsoleApp {
 
     // 1. Restaurante disponibile
     private void showRestaurants() {
-        restaurantService.displayRestaurantsSortedByRating();
+        System.out.println("\n===== TOATE RESTAURANTELE (cele mai bine evaluate primele) =====");
+        int index = 1;
+        for (Restaurant restaurant : restaurantService.getRestaurantsSortedByRating())
+            System.out.println(index++ + ". " + restaurant);
+        System.out.println("=============================================\n");
     }
 
     // 2. Explorează meniu restaurant
@@ -94,7 +99,14 @@ public class ConsoleApp {
             System.out.println("Opțiune invalidă.\n");
             return;
         }
-        menuService.displayMenuSortedByPrice(list.get(choice - 1).getId());
+        Restaurant chosen = list.get(choice - 1);
+        System.out.println("\n===== MENIU (cele mai ieftine primele): " + chosen.getName() + " =====");
+        for (MenuItem item : menuService.getMenuSortedByPrice(chosen.getId())) {
+            System.out.println("  " + item);
+            if (item.getDescription() != null && !item.getDescription().isBlank())
+                System.out.println("    " + item.getDescription());
+        }
+        System.out.println("==========================\n");
     }
 
     // 3. Plasează comandă nouă
@@ -113,8 +125,11 @@ public class ConsoleApp {
 
         List<MenuItem> menu = menuService.getMenuSortedByPrice(restaurant.getId());
         System.out.println("\nMeniu " + restaurant.getName() + ":");
-        for (int i = 0; i < menu.size(); i++)
+        for (int i = 0; i < menu.size(); i++) {
             System.out.println("  " + (i + 1) + ". " + menu.get(i));
+            if (menu.get(i).getDescription() != null && !menu.get(i).getDescription().isBlank())
+                System.out.println("       " + menu.get(i).getDescription());
+        }
         System.out.print("Alege produse (ex: 1,3): ");
         String[] parts = scanner.nextLine().trim().split(",");
         List<MenuItem> selected = new ArrayList<>();
@@ -147,7 +162,7 @@ public class ConsoleApp {
             Order newOrder = myOrders.get(myOrders.size() - 1);
             String orderId = newOrder.getId();
 
-            System.out.println("\nComanda " + orderId + " plasată cu succes. Stare: PREPARING.");
+            System.out.println("\nComanda " + orderId + " plasată cu succes. Stare: " + newOrder.getStatus().getLabel() + ". [" + newOrder.getStatusChangeTime() + "]");
             if (simulateOrderProgression(orderId, newOrder))
                 System.out.println("Comanda " + orderId + " a fost livrată! Total: " +
                         String.format("%.2f", newOrder.getTotal()) + " lei\n");
@@ -159,7 +174,21 @@ public class ConsoleApp {
 
     // 4. Comenzile mele
     private void showMyOrders() {
-        orderService.getCustomerOrderHistory(currentUser.getId());
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd.MM.yyyy, HH:mm");
+        List<Order> orders = orderService.getOrdersByCustomer(currentUser.getId());
+        System.out.println("\n===== ISTORIC COMENZI =====");
+        if (orders.isEmpty())
+            System.out.println("Nu s-au găsit comenzi.");
+        else
+            for (Order order : orders) {
+                String ratingInfo = order.getReview() != null
+                        ? " | Rating: " + order.getReview().rating() + "/5"
+                        : "";
+                System.out.println("Comanda " + order.getId() + " | " + order.getDate().format(formatter) + " | " +
+                        order.getRestaurant().getName() + " | " + order.getStatus().getLabel() + " | " +
+                        String.format("%.2f", order.getTotal()) + " lei" + ratingInfo);
+            }
+        System.out.println("=========================\n");
     }
 
     // 5. Lasă recenzie
@@ -235,7 +264,7 @@ public class ConsoleApp {
             String orderId = newOrder.getId();
 
             System.out.println("\nComanda " + orderId + " plasată (repetată din " + selected.getId() +
-                    "). Stare: PREPARING.");
+                    "). Stare: " + newOrder.getStatus().getLabel() + ". [" + newOrder.getStatusChangeTime() + "]");
             if (simulateOrderProgression(orderId, newOrder))
                 System.out.println("Comanda " + orderId + " livrată! Total: " +
                         String.format("%.2f", newOrder.getTotal()) + " lei\n");
@@ -262,13 +291,11 @@ public class ConsoleApp {
         System.out.println("\nComenzi active:");
         for (int i = 0; i < cancellable.size(); i++) {
             Order o = cancellable.get(i);
-            String fee = switch (o.getStatus()) {
-                case PENDING, PREPARING -> "fără taxă";
-                case READY_FOR_PICKUP -> "taxă 30% (" + String.format("%.2f", 0.30 * o.getSubtotal()) + " lei)";
-                case OUT_FOR_DELIVERY -> "taxă 100% din subtotal + taxă livrare (" + String.format("%.2f", o.getSubtotal() + o.getDeliveryFee()) + " lei)";
-                default -> "";
-            };
-            System.out.println("  " + (i + 1) + ". " + o.getId() + " — " + o.getRestaurant().getName() + " | " + o.getStatus() + " | " + fee);
+            double potentialFee = o.getPotentialCancellationFee();
+            String fee = potentialFee == 0
+                    ? "fără taxă"
+                    : "taxă: " + String.format("%.2f", potentialFee) + " lei";
+            System.out.println("  " + (i + 1) + ". " + o.getId() + " — " + o.getRestaurant().getName() + " | " + o.getStatus().getLabel() + " | " + fee);
         }
         System.out.print("Alege comanda de anulat (0 pentru renunțare): ");
         int choice = readInt();
@@ -276,9 +303,13 @@ public class ConsoleApp {
             System.out.println("Anulare abandonată.\n");
             return;
         }
+        Order toCancel = cancellable.get(choice - 1);
         try {
-            orderService.cancelOrder(cancellable.get(choice - 1).getId());
-            System.out.println();
+            orderService.cancelOrder(toCancel.getId());
+            String feeInfo = toCancel.getCancellationFee() > 0
+                    ? " Taxă de anulare: " + String.format("%.2f", toCancel.getCancellationFee()) + " lei."
+                    : "";
+            System.out.println("Comanda " + toCancel.getId() + " a fost anulată." + feeInfo + "\n");
         } catch (Exception e) {
             System.out.println("Eroare: " + e.getMessage() + "\n");
         }
@@ -294,7 +325,7 @@ public class ConsoleApp {
             return false;
         }
         orderService.confirmOrder(orderId);
-        System.out.println("Comanda a fost confirmată de restaurant. Stare: PREPARING.");
+        System.out.println("Comanda a fost confirmată de restaurant. Stare: " + order.getStatus().getLabel() + ". [" + order.getStatusChangeTime() + "]");
 
         // Restaurantul marcheaza comanda gata (PREPARING -> READY_FOR_PICKUP)
         System.out.print("Apasă Enter când restaurantul marchează comanda gata, sau 'c' pentru a anula (fără taxă): ");
@@ -305,7 +336,7 @@ public class ConsoleApp {
         }
         orderService.markOrderReady(orderId);
         String driverName = order.getDriver() != null ? order.getDriver().getName() : "necunoscut";
-        System.out.println("Comanda e gata de ridicare. Curier asignat: " + driverName + ".");
+        System.out.println("Comanda e gata de ridicare (" + order.getStatus().getLabel() + "). Curier asignat: " + driverName + ". [" + order.getStatusChangeTime() + "]");
 
         // Curierul ridica comanda (READY_FOR_PICKUP -> OUT_FOR_DELIVERY)
         System.out.print("Apasă Enter când curierul ridică comanda, sau 'c' pentru a anula (taxă 20%): ");
@@ -315,7 +346,7 @@ public class ConsoleApp {
             return false;
         }
         orderService.pickupOrder(orderId);
-        System.out.println("Comanda e în livrare.");
+        System.out.println("Stare: " + order.getStatus().getLabel() + ". [" + order.getStatusChangeTime() + "]");
 
         // Comanda este livrata (OUT_FOR_DELIVERY -> DELIVERED)
         System.out.print("Apasă Enter când comanda este livrată, sau 'c' pentru a anula (taxă 100%): ");

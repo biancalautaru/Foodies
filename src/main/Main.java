@@ -8,7 +8,7 @@ public class Main {
         UserService userService = new UserService();
         RestaurantService restaurantService = new RestaurantService();
         MenuService menuService = new MenuService(restaurantService);
-        OrderService orderService = new OrderService(userService, restaurantService);
+        OrderService orderService = new OrderService(userService);
 
         // Adaugare clienti
         Customer maria  = new Customer("C2", "Maria Ionescu",     "maria.ionescu@gmail.com", "0734565371");

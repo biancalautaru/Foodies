@@ -1,7 +1,6 @@
 package service;
 
 import models.MenuItem;
-import models.Restaurant;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -26,27 +25,4 @@ public class MenuService {
         return sorted;
     }
 
-    public void displayMenu(String restaurantId) {
-        Restaurant restaurant = restaurantService.findRestaurantById(restaurantId);
-        System.out.println("\n===== MENIU: " + restaurant.getName() + " =====");
-        for (MenuItem item : restaurant.getMenu())
-            System.out.println("  " + item);
-        System.out.println("==========================\n");
-    }
-
-    public void displayMenuSortedByName(String restaurantId) {
-        Restaurant restaurant = restaurantService.findRestaurantById(restaurantId);
-        System.out.println("\n===== MENIU (A-Z): " + restaurant.getName() + " =====");
-        for (MenuItem item : getMenuSortedByName(restaurantId))
-            System.out.println("  " + item);
-        System.out.println("==========================\n");
-    }
-
-    public void displayMenuSortedByPrice(String restaurantId) {
-        Restaurant restaurant = restaurantService.findRestaurantById(restaurantId);
-        System.out.println("\n===== MENIU (cele mai ieftine primele): " + restaurant.getName() + " =====");
-        for (MenuItem item : getMenuSortedByPrice(restaurantId))
-            System.out.println("  " + item);
-        System.out.println("==========================\n");
-    }
 }

@@ -3,11 +3,11 @@ package models;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 
-public record Review(String id, Customer customer, Order order, int rating, String comment, LocalDateTime date) {
+public record Review(String id, Customer customer, String orderId, int rating, String comment, LocalDateTime date) {
     private static final DateTimeFormatter FORMATTER = DateTimeFormatter.ofPattern("dd.MM.yyyy, HH:mm");
 
-    public Review(String id, Customer customer, Order order, int rating, String comment) {
-        this(id, customer, order, rating, comment, LocalDateTime.now());
+    public Review(String id, Customer customer, String orderId, int rating, String comment) {
+        this(id, customer, orderId, rating, comment, LocalDateTime.now());
     }
 
     @Override
