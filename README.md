@@ -1,97 +1,84 @@
 # 🍔 Foodies
 
-Foodies is a food-delivery platform built in Java. It models the full lifecycle of a delivery order — from a customer browsing menus and building a cart, through driver assignment and delivery, to post-delivery reviews — backed by an audit log written to CSV.
+Foodies este o platformă de livrare de mâncare construită în Java. Modelează întregul ciclu de viață al unei comenzi de livrare - de la răsfoirea meniurilor și adăugarea produselor în coș de către client, prin atribuirea șoferului și livrare, până la recenziile post-livrare.
 
-## ✨ Features
+## ✨ Funcționalități
 
-- 👤 **Customer & driver management** — Register customers and drivers; query available drivers from a shared pool.
-- 🍽️ **Restaurant & menu browsing** — Browse restaurants sorted by rating or name; view menus sorted by name or price.
-- 🛒 **Cart** — Add items to a cart enforcing a single-restaurant-per-order rule.
-- 📦 **Order lifecycle** — `PENDING` → `PREPARING` → `READY_FOR_PICKUP` → `OUT_FOR_DELIVERY` → `DELIVERED`, with strict status-transition validation.
-- 🚴 **Automatic driver assignment** — Available drivers are assigned automatically when an order reaches `READY_FOR_PICKUP`.
-- 📍 **City matching** — Orders can only be placed to a restaurant in the same city as the delivery address.
-- ❌ **Cancellation with fees** — Free cancellation while `PENDING` or `PREPARING`; 30 % of subtotal at `READY_FOR_PICKUP`; full subtotal + delivery fee at `OUT_FOR_DELIVERY`.
-- ⭐ **Reviews** — Customers leave a 1–5 star rating and comment after delivery; the restaurant's rolling average is updated immediately.
-- 🔁 **Reorder** — Repeat a past delivered order with a new address (city must still match the restaurant).
-- 📋 **Audit trail** — Every significant action is appended to `logs/audit.csv` via a singleton `AuditService`.
-- 💬 **Interactive console UI** — Romanian-language CLI (`ConsoleApp`) for manual exploration of all features.
+- 👤 **Gestionarea clienților și șoferilor**: Înregistrează clienți și șoferi; interogă șoferii disponibili dintr-un pool comun.
+- 🍽️ **Răsfoirea restaurantelor și meniurilor**: Răsfoiește restaurante sortate după rating sau nume; vizualizează meniuri sortate după nume sau preț.
+- 🛒 **Coș de cumpărături**: Adaugă produse în coș cu respectarea regulii unui singur restaurant per comandă.
+- 📦 **Ciclul de viață al comenzii**: `În așteptare` -> `În preparare` -> `Gata de ridicare` -> `În livrare` -> `Livrată`, cu validarea strictă a tranzițiilor de stare.
+- 🚴 **Atribuirea automată a șoferilor**: Șoferii disponibili sunt atribuiți automat când o comandă ajunge la starea `Gata de ridicare`.
+- 📍 **Potrivire după oraș**: Comenzile pot fi plasate doar la un restaurant din același oraș cu adresa de livrare.
+- ❌ **Anulare cu taxe**: Anulare gratuită în stările `În așteptare` sau `În preparare`; 30% din subtotal la `Gata de ridicare`; subtotal complet + taxa de livrare la `În livrare`.
+- ⭐ **Recenzii**: Clienții lasă un rating de 1–5 stele și un comentariu după livrare; media rulantă a restaurantului este actualizată imediat.
+- 🔁 **Recomandă**: Repetă o comandă livrată anterior cu o adresă nouă (orașul trebuie să corespundă în continuare restaurantului).
+- 📋 **Jurnal de audit**: Fiecare acțiune semnificativă este adăugată în `logs/audit.csv` printr-un `AuditService` singleton.
+- 💬 **Interfață consolă interactivă**: CLI în limba română (`ConsoleApp`) pentru explorarea manuală a tuturor funcționalităților.
 
-## 📁 Project Structure
+## 📁 Structura Proiectului
 
 ```
 Foodies/
 ├── src/
 │   ├── main/
-│   │   ├── Main.java          # Entry point: seeds demo data, runs scripted workflows, starts ConsoleApp
-│   │   └── ConsoleApp.java    # Interactive console application (Romanian UI)
+│   │   ├── Main.java          # Punct de intrare: populează date demo, rulează fluxuri de lucru, pornește ConsoleApp
+│   │   └── ConsoleApp.java    # Aplicație consolă interactivă (UI în română)
 │   ├── models/
-│   │   ├── User.java          # Base entity (id, name, email, phone)
-│   │   ├── Customer.java      # User with a Cart
-│   │   ├── Driver.java        # User with availability flag
-│   │   ├── Restaurant.java    # Menu, star rating, review count
-│   │   ├── MenuItem.java      # Price, description, linked restaurant
-│   │   ├── Address.java       # record(street, number, city)
-│   │   ├── Cart.java          # Single-restaurant shopping cart
-│   │   ├── Order.java         # Line items, status, cancellation fee logic, clone/reorder
-│   │   ├── OrderStatus.java   # PENDING → … → DELIVERED | CANCELLED
-│   │   └── Review.java        # record(customer, order, rating, comment, timestamp)
+│   │   ├── User.java          # Entitate de bază (id, nume, email, telefon)
+│   │   ├── Customer.java      # Utilizator cu un Coș
+│   │   ├── Driver.java        # Utilizator cu indicator de disponibilitate
+│   │   ├── Restaurant.java    # Meniu, rating cu stele, număr de recenzii
+│   │   ├── MenuItem.java      # Preț, descriere, restaurant asociat
+│   │   ├── Address.java       # record(stradă, număr, oraș)
+│   │   ├── Cart.java          # Coș de cumpărături pentru un singur restaurant
+│   │   ├── Order.java         # Articole, stare, logica taxei de anulare, clonare/recomandă
+│   │   ├── OrderStatus.java   # PENDING -> ... -> DELIVERED | CANCELLED
+│   │   └── Review.java        # record(client, comandă, rating, comentariu, timestamp)
 │   ├── service/
-│   │   ├── UserService.java        # Customer/driver registry; findAvailableDriver()
-│   │   ├── RestaurantService.java  # Restaurant/menu-item registry; sorted display helpers
-│   │   ├── MenuService.java        # Menu queries delegating to RestaurantService
-│   │   ├── OrderService.java       # Full order workflow (place → deliver, cancel, review, reorder)
-│   │   └── AuditService.java       # Singleton CSV logger → logs/audit.csv
+│   │   ├── UserService.java        # Registru clienți/șoferi; findAvailableDriver()
+│   │   ├── RestaurantService.java  # Registru restaurante/articole meniu; helper-e de afișare sortată
+│   │   ├── MenuService.java        # Interogări meniu delegate către RestaurantService
+│   │   ├── OrderService.java       # Flux complet al comenzii (plasare → livrare, anulare, recenzie, recomandă)
+│   │   └── AuditService.java       # Logger CSV singleton → logs/audit.csv
 │   └── exceptions/
-│       ├── FoodiesException.java        # Runtime base exception
-│       ├── EntityNotFoundException.java # Missing restaurant/order/etc.
-│       └── InvalidOrderException.java   # Business-rule violations
+│       ├── FoodiesException.java        # Excepție de bază Runtime
+│       ├── EntityNotFoundException.java # Restaurant/comandă/etc. lipsă
+│       └── InvalidOrderException.java   # Încălcări ale regulilor de business
 └── logs/
-    └── audit.csv              # Append-only action log (created at runtime)
+    └── audit.csv              # Jurnal de acțiuni doar pentru adăugare (creat la runtime)
 ```
 
-## 🛠️ Tech Stack
+## 🛠️ Stack Tehnologic
 
 | | |
 |---|---|
-| ☕ **Language** | Java 21 |
-| 🏗️ **Build** | IntelliJ IDEA (plain Java module, no Maven/Gradle) |
-| 💾 **Persistence** | In-memory collections + `logs/audit.csv` |
-| 📦 **Dependencies** | Standard library only |
+| ☕ **Limbaj** | Java 21 |
+| 🏗️ **Build** | IntelliJ IDEA (modul Java simplu, fără Maven/Gradle) |
+| 💾 **Persistență** | Colecții în memorie + `logs/audit.csv` |
+| 📦 **Dependențe** | Doar biblioteca standard |
 
-## 🚀 Getting Started
+## 🚀 Pornire Rapidă
 
-### Prerequisites
+### Cerințe prealabile
 
-- ☕ JDK 21 (e.g. Azul Zulu 21)
-- 💡 IntelliJ IDEA (recommended)
+- ☕ JDK 21 (ex. Azul Zulu 21)
+- 💡 IntelliJ IDEA (recomandat)
 
-### ▶️ Run in IntelliJ
+### ▶️ Rulare în IntelliJ
 
-1. Open the `Foodies` folder as a project.
-2. Ensure the SDK is set to JDK 21 (**File → Project Structure → SDK**).
-3. Run `main.Main`.
+1. Deschide folderul `Foodies` ca proiect.
+2. Asigură-te că SDK-ul este setat la JDK 21 (**File → Project Structure → SDK**).
+3. Rulează `main.Main`.
 
-The program seeds demo restaurants, customers, drivers, and orders, executes a scripted walkthrough, then launches the interactive console.
+Programul populează restaurante, clienți, șoferi și comenzi demo, execută o prezentare generală scriptată, apoi lansează consola interactivă.
 
-### ⌨️ Run from the command line
+### ⌨️ Rulare din linia de comandă
 
 ```powershell
-# From the repo root — compile
+# Din rădăcina repo-ului — compilare
 javac -d out -sourcepath src (Get-ChildItem -Recurse src -Filter *.java | % { $_.FullName })
 
-# Run (working directory must be the repo root so logs/ is created here)
+# Rulare (directorul de lucru trebuie să fie rădăcina repo-ului pentru ca logs/ să fie creat aici)
 java -cp out main.Main
 ```
-
-## 📋 Audit Log
-
-Every key action (add customer, place order, submit review, cancel, etc.) is recorded in `logs/audit.csv`:
-
-```
-action_name,timestamp
-addCustomer,2026-05-07T21:00:00.123
-placeOrder,2026-05-07T21:00:01.456
-...
-```
-
-The `logs/` directory is created automatically on first run relative to the working directory.
