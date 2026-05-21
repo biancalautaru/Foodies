@@ -1,11 +1,14 @@
 package models;
 
+import interfaces.Displayable;
+import interfaces.Reviewable;
+
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 
-public class Restaurant implements Comparable<Restaurant> {
+public class Restaurant implements Comparable<Restaurant>, Reviewable, Displayable {
     private String id;
     private String name;
     private Address address;
@@ -60,14 +63,17 @@ public class Restaurant implements Comparable<Restaurant> {
         menuItem.setRestaurant(this);
     }
 
+    @Override
     public void addReview(Review review) {
         reviews.add(review);
     }
 
+    @Override
     public int getReviewCount() {
         return reviews.size();
     }
 
+    @Override
     public double getAverageRating() {
         if (reviews.isEmpty())
             return 0.0;
@@ -83,9 +89,14 @@ public class Restaurant implements Comparable<Restaurant> {
     }
 
     @Override
-    public String toString() {
+    public String toDisplayString() {
         if (getReviewCount() == 0)
             return name + " (Nicio recenzie)";
         return name + " (" + String.format("%.2f", getAverageRating()) + "/5 stele din " + getReviewCount() + " recenzii)";
+    }
+
+    @Override
+    public String toString() {
+        return toDisplayString();
     }
 }

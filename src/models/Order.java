@@ -1,12 +1,14 @@
 package models;
 
+import interfaces.Displayable;
+
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
-public class Order {
+public class Order implements Displayable {
     private String id;
     private LocalDateTime date;
     private Customer customer;
@@ -49,6 +51,10 @@ public class Order {
         return restaurant;
     }
 
+    public Address getDeliveryAddress() {
+        return deliveryAddress;
+    }
+
     public Driver getDriver() {
         return driver;
     }
@@ -71,21 +77,6 @@ public class Order {
 
     public void setReview(Review review) {
         this.review = review;
-    }
-
-    public double getCancellationFee() {
-        return cancellationFee;
-    }
-
-    public double getPotentialCancellationFee() {
-        switch (status) {
-            case READY_FOR_PICKUP:
-                return 0.30 * getSubtotal();
-            case OUT_FOR_DELIVERY:
-                return getSubtotal() + DELIVERY_FEE;
-            default:
-                return 0;
-        }
     }
 
     public double getSubtotal() {
@@ -117,7 +108,6 @@ public class Order {
             statusChangeTime = LocalDateTime.now();
             return true;
         }
-
         return false;
     }
 
@@ -125,33 +115,28 @@ public class Order {
         if (status == OrderStatus.DELIVERED || status == OrderStatus.CANCELLED)
             return false;
 
-        switch (status) {
-            case PENDING:
-            case PREPARING:
-                cancellationFee = 0;
-                break;
-            case READY_FOR_PICKUP:
-                cancellationFee = 0.30 * getSubtotal();
-                break;
-            case OUT_FOR_DELIVERY:
-                cancellationFee = getSubtotal() + DELIVERY_FEE;
-                break;
-            default:
-                break;
-        }
-
+        cancellationFee = computeCancellationFee();
         status = OrderStatus.CANCELLED;
         statusChangeTime = LocalDateTime.now();
         return true;
     }
 
+    private double computeCancellationFee() {
+        switch (status) {
+            case READY_FOR_PICKUP:
+                return 0.30 * getSubtotal();
+            case OUT_FOR_DELIVERY:
+                return getSubtotal() + DELIVERY_FEE;
+            default:
+                return 0;
+        }
+    }
+
     private boolean isValidStatusTransition(OrderStatus oldStatus, OrderStatus newStatus) {
         if (oldStatus == newStatus)
             return false;
-
         if (oldStatus == OrderStatus.CANCELLED || newStatus == OrderStatus.CANCELLED)
             return false;
-
         switch (oldStatus) {
             case PENDING:
                 return newStatus == OrderStatus.PREPARING;
@@ -191,5 +176,16 @@ public class Order {
         newOrder.review = null;
         newOrder.cancellationFee = 0;
         return newOrder;
+    }
+
+    @Override
+    public String toDisplayString() {
+        return "Comanda " + id + " | " + restaurant.getName() + " | " +
+                status.getLabel() + " | " + String.format("%.2f", getTotal()) + " lei";
+    }
+
+    @Override
+    public String toString() {
+        return toDisplayString();
     }
 }

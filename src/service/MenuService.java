@@ -1,28 +1,33 @@
 package service;
 
+import interfaces.IMenuService;
+import interfaces.IRestaurantService;
 import models.MenuItem;
 
 import java.util.ArrayList;
-import java.util.Collections;
+import java.util.Comparator;
 import java.util.List;
 
-public class MenuService {
-    private final RestaurantService restaurantService;
+public class MenuService implements IMenuService {
+    private final IRestaurantService restaurantService;
 
-    public MenuService(RestaurantService restaurantService) {
+    public MenuService(IRestaurantService restaurantService) {
         this.restaurantService = restaurantService;
     }
 
+    @Override
     public List<MenuItem> getMenuSortedByName(String restaurantId) {
-        List<MenuItem> sorted = new ArrayList<>(restaurantService.findRestaurantById(restaurantId).getMenu());
-        Collections.sort(sorted);
-        return sorted;
+        return sortedMenu(restaurantId, Comparator.naturalOrder());
     }
 
+    @Override
     public List<MenuItem> getMenuSortedByPrice(String restaurantId) {
-        List<MenuItem> sorted = new ArrayList<>(restaurantService.findRestaurantById(restaurantId).getMenu());
-        sorted.sort(MenuItem.BY_PRICE);
-        return sorted;
+        return sortedMenu(restaurantId, MenuItem.BY_PRICE);
     }
 
+    private List<MenuItem> sortedMenu(String restaurantId, Comparator<MenuItem> comparator) {
+        List<MenuItem> sorted = new ArrayList<>(restaurantService.findRestaurantById(restaurantId).getMenu());
+        sorted.sort(comparator);
+        return sorted;
+    }
 }

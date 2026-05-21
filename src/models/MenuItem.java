@@ -1,8 +1,10 @@
 package models;
 
+import interfaces.Displayable;
+
 import java.util.Comparator;
 
-public class MenuItem implements Comparable<MenuItem> {
+public class MenuItem implements Comparable<MenuItem>, Displayable {
     private String id;
     private String name;
     private String description;
@@ -17,10 +19,6 @@ public class MenuItem implements Comparable<MenuItem> {
         this.description = description;
         this.price = price;
         this.restaurant = null;
-    }
-
-    public String getId() {
-        return id;
     }
 
     public String getName() {
@@ -39,7 +37,7 @@ public class MenuItem implements Comparable<MenuItem> {
         return restaurant;
     }
 
-    public void setRestaurant(Restaurant restaurant) {
+    void setRestaurant(Restaurant restaurant) {
         this.restaurant = restaurant;
     }
 
@@ -49,7 +47,12 @@ public class MenuItem implements Comparable<MenuItem> {
     }
 
     @Override
-    public String toString() {
+    public String toDisplayString() {
         return name + " - " + String.format("%.2f", price) + " lei";
+    }
+
+    @Override
+    public String toString() {
+        return toDisplayString();
     }
 }
