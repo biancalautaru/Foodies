@@ -69,4 +69,10 @@ public class DatabaseConfiguration {
             }
         }
     }
+
+    public static synchronized void closeIfOpen() {
+        if (instance != null) {
+            instance.closeConnection();
+        }
+    }
 }

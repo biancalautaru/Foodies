@@ -35,7 +35,7 @@ public class ConsoleApp {
             runInteractiveMode();
         } finally {
             scanner.close();
-            DatabaseConfiguration.getInstance().closeConnection();
+            DatabaseConfiguration.closeIfOpen();
         }
     }
 
