@@ -1,106 +1,109 @@
-# Foodies
+# Foodies 🍔
 
-Foodies este o platformă de livrare de mâncare construită în Java. Modelează întregul ciclu de viață al unei comenzi - de la răsfoirea meniurilor și adăugarea produselor în coș de către client, prin atribuirea șoferului și livrare, până la recenziile post-livrare.
+Aplicație de tip food-delivery în Java, accesibilă din consolă. Clientul își face cont, explorează restaurantele și meniurile, plasează comenzi, urmărește fluxul de livrare și lasă recenzii. Datele sunt persistate într-o bază PostgreSQL prin JDBC, iar acțiunile importante sunt scrise într-un fișier de audit.
 
-## Funcționalități
+## 📋 Cuprins
 
-- **Înregistrare la pornire**: La lansarea aplicației, utilizatorul completează un formular simplu (nume, email, telefon) și primește imediat un cont de client activ.
-- **Gestionarea clienților și șoferilor**: Înregistrează clienți și șoferi; interogă șoferii disponibili dintr-un pool comun.
-- **Răsfoirea restaurantelor și meniurilor**: Răsfoiește restaurante sortate după rating sau după nume; vizualizează meniuri sortate după preț (cel mai ieftin primul).
-- **Recenzii restaurant**: Vizualizează toate recenziile lăsate pentru un restaurant ales.
-- **Coș de cumpărături**: Adaugă produse în coș cu respectarea regulii unui singur restaurant per comandă.
-- **Ciclu de viață interactiv al comenzii**: `În așteptare` → `În preparare` → `Gata de ridicare` → `În livrare` → `Livrată`, avansat pas cu pas prin apăsarea Enter; cu validarea strictă a tranzițiilor de stare.
-- **Anulare de către restaurant**: La pasul de confirmare, restaurantul poate anula comanda (opțiunea `c`).
-- **Atribuirea automată a șoferilor**: Șoferii disponibili sunt atribuiți automat când o comandă ajunge la starea `Gata de ridicare`.
-- **Potrivire după oraș**: Orasul adresei de livrare este preluat automat din orașul restaurantului ales; utilizatorul introduce doar strada și numărul.
-- **Anulare cu taxe**: Anulare gratuită în stările `În așteptare` sau `În preparare`; 30% din subtotal la `Gata de ridicare`; subtotal complet + taxa de livrare la `În livrare`.
-- **Recenzii**: Clienții lasă un rating de 1–5 stele și un comentariu după livrare; media rulantă a restaurantului este actualizată imediat.
-- **Repetă comandă**: Repetă o comandă livrată anterior cu o adresă nouă (orașul trebuie să corespundă în continuare restaurantului).
-- **Detalii comandă**: Vizualizează produsele, subtotalul, taxa de livrare, totalul și recenzia aferentă oricărei comenzi proprii.
-- **Jurnal de audit**: Fiecare acțiune semnificativă este înregistrată în `logs/audit.csv` printr-un `AuditService` singleton.
-- **Interfață consolă interactivă**: CLI în limba română (`ConsoleApp`) cu meniu principal pe două niveluri (Restaurante / Comenzi).
+- [✨ Funcționalități](#-funcționalități)
+- [⚙️ Detalii tehnice](#-detalii-tehnice)
+- [📁 Structura proiectului](#-structura-proiectului)
+- [🧩 Clasele](#-clasele)
+- [🗄️ Baza de date](#-baza-de-date)
+- [▶️ Cum se rulează](#-cum-se-rulează)
+- [✅ Maparea pe cerințele proiectului](#-maparea-pe-cerințele-proiectului)
 
-## Structura Proiectului
+## ✨ Funcționalități
+
+1. 👤 Creare cont client la pornire.
+2. 🏪 Listarea restaurantelor sortate alfabetic sau după rating.
+3. 📖 Vizualizarea meniului unui restaurant sortat după preț sau alfabetic.
+4. ⭐ Răsfoirea recenziilor publice ale unui restaurant.
+5. 🛒 Plasarea unei comenzi noi cu produse din coș și adresă de livrare.
+6. ✅ Confirmarea comenzii de către restaurant.
+7. ❌ Anularea comenzii cât timp este în așteptare.
+8. 🍳 Marcarea comenzii ca gata + asignarea automată a unui curier disponibil.
+9. 🛵 Ridicarea și livrarea comenzii.
+10. 📝 Trimiterea unei recenzii (1–5 stele) pentru o comandă livrată.
+11. 📜 Vizualizarea istoricului propriu de comenzi.
+12. 🔍 Vizualizarea detaliilor unei comenzi (produse, subtotal, taxă, total).
+13. 🔁 Re-plasarea unei comenzi livrate anterior la o adresă nouă.
+
+## 📁 Structura proiectului
 
 ```
 Foodies/
-├── src/
-│   ├── main/
-│   │   ├── Main.java          # Punct de intrare: inițializează serviciile și pornește ConsoleApp
-│   │   ├── ConsoleApp.java    # Aplicație consolă interactivă (UI în română, meniu pe două niveluri)
-│   │   └── DataSeeder.java    # Populează date demo (restaurante, meniuri, clienți, șoferi, comenzi)
-│   ├── interfaces/
-│   │   ├── Displayable.java       # Contract toDisplayString() pentru modele afișabile
-│   │   ├── Reviewable.java        # Contract addReview / getAverageRating / getReviewCount
-│   │   ├── IUserService.java      # Operații pe utilizatori și șoferi
-│   │   ├── IRestaurantService.java# Operații pe restaurante și meniuri
-│   │   ├── IMenuService.java      # Interogări meniu sortate
-│   │   └── IOrderService.java     # Flux complet al comenzii
-│   ├── models/
-│   │   ├── User.java          # Entitate de bază abstractă (id, nume, email, telefon)
-│   │   ├── Customer.java      # Utilizator cu un Coș
-│   │   ├── Driver.java        # Utilizator cu indicator de disponibilitate
-│   │   ├── Restaurant.java    # Implementează Reviewable și Displayable; meniu, rating cu stele
-│   │   ├── MenuItem.java      # Implementează Displayable; preț, descriere, restaurant asociat
-│   │   ├── Address.java       # record(stradă, număr, oraș)
-│   │   ├── Cart.java          # Coș de cumpărături pentru un singur restaurant
-│   │   ├── Order.java         # Implementează Displayable; articole, stare, logica taxei de anulare, clonare/repetă
-│   │   ├── OrderStatus.java   # PENDING → PREPARING → READY_FOR_PICKUP → OUT_FOR_DELIVERY → DELIVERED | CANCELLED
-│   │   └── Review.java        # record(client, comandă, rating, comentariu, timestamp)
-│   ├── service/
-│   │   ├── UserService.java        # Registru clienți/șoferi; findAvailableDriver()
-│   │   ├── RestaurantService.java  # Registru restaurante/articole meniu; helper-e de afișare sortată
-│   │   ├── MenuService.java        # Interogări meniu delegate către RestaurantService
-│   │   ├── OrderService.java       # Flux complet al comenzii (plasare → livrare, anulare, recenzie, repetă)
-│   │   └── AuditService.java       # Logger CSV singleton → logs/audit.csv
-│   └── exceptions/
-│       ├── FoodiesException.java        # Excepție de bază Runtime
-│       ├── EntityNotFoundException.java # Restaurant/comandă/etc. lipsă
-│       └── InvalidOrderException.java   # Încălcări ale regulilor de business
-└── logs/
-    └── audit.csv              # Jurnal de acțiuni doar pentru adăugare (creat la runtime)
+├── db.properties            🔑 Credențialele DB (din db.example.properties)
+├── sql/schema.sql           🗄️ Script PostgreSQL
+├── logs/audit.csv           📝 Generat la rulare
+└── src/
+    ├── config/              🔌 DatabaseConfiguration (singleton)
+    ├── exceptions/          🚨 Excepții custom
+    ├── interfaces/          🧾 Interfețe servicii + Displayable, Reviewable
+    ├── models/              🧩 Address, User, Customer, Driver, Restaurant,
+    │                           MenuItem, Order, OrderStatus, Review, Cart
+    ├── repository/          🧰 GenericRepository + repo-uri JDBC
+    ├── service/             🧠 UserService, RestaurantService, MenuService,
+    │                           OrderService, AuditService
+    └── main/                ▶️ Main, ConsoleApp, DataSeeder
 ```
 
-## Stack Tehnologic
+## 🧩 Clasele
 
-| | |
+| Clasă | Rol |
 |---|---|
-| **Limbaj** | Java 21 |
-| **Build** | IntelliJ IDEA (modul Java simplu, fără Maven/Gradle) |
-| **Persistență** | Colecții în memorie + `logs/audit.csv` |
-| **Dependențe** | Doar biblioteca standard |
+| `User` (abstractă) | 👤 Bază pentru utilizatori (date de contact). |
+| `Customer extends User` | 🧑 Client cu coș (`Cart`). |
+| `Driver extends User` | 🛵 Curier, marcat disponibil/indisponibil. |
+| `Restaurant` | 🏪 Restaurant cu meniu și recenzii. |
+| `MenuItem` | 🍕 Produs din meniu (nume, descriere, preț). |
+| `Order` | 📦 Comandă cu produse, status, curier, recenzie, total. |
+| `OrderStatus` (enum) | 🚦 `PENDING → PREPARING → READY_FOR_PICKUP → OUT_FOR_DELIVERY → DELIVERED` (+ `CANCELLED`). |
+| `Review` | ⭐ Recenzie (1–5 stele + comentariu) legată de o comandă. |
+| `Cart` | 🛒 Coșul clientului (produse dintr-un singur restaurant). |
+| `Address` | 📍 Adresă (stradă, număr, oraș). |
 
-## Pornire Rapidă
+## 🗄️ Baza de date
+
+Schema este în `sql/schema.sql` și conține tabelele: `addresses`, `customers`, `drivers`, `restaurants`, `menu_items`, `orders`, `order_items`, `reviews`.
+
+Înainte de prima rulare:
+
+```bash
+createdb foodies
+psql -d foodies -f sql/schema.sql
+```
+
+Apoi se copiază `db.example.properties` în `db.properties` și se completează credențialele:
+
+```properties
+db.url=jdbc:postgresql://localhost:5432/foodies
+db.user=postgres
+db.password=parola_ta
+```
+
+🌱 La prima rulare, dacă baza e goală, `DataSeeder` o populează cu 3 clienți, 3 curieri, 5 restaurante, ~25 de produse și câteva comenzi (inclusiv livrate cu recenzii).
+
+## ▶️ Cum se rulează
 
 ### Cerințe prealabile
 
-- JDK 21 (ex. Azul Zulu 21)
-- IntelliJ IDEA (recomandat)
+- ☕ JDK 17 sau mai nou
+- 🐘 PostgreSQL 13+
+- 📦 Driver `postgresql-42.7.x.jar`
 
-### Rulare în IntelliJ
+### 🧠 În IntelliJ IDEA
 
-1. Deschide folderul `Foodies` ca proiect.
-2. Asigură-te că SDK-ul este setat la JDK 21 (**File → Project Structure → SDK**).
-3. Rulează `main.Main`.
+1. `File → Open` și alege folderul `Foodies`.
+2. Adaugă `postgresql-42.7.x.jar` la `Project Structure → Libraries` (dacă nu este deja).
+3. Copiază `db.example.properties` → `db.properties` și completează credențialele.
+4. Rulează `sql/schema.sql` pe baza de date.
+5. Rulează clasa `main.Main`.
 
-La pornire, programul populează date demo (restaurante, meniuri, clienți, șoferi și câteva comenzi exemplu), apoi te invită să te înregistrezi și lansează consola interactivă.
-
-### Rulare din linia de comandă
+### 💻 Din linia de comandă
 
 ```powershell
-# Din rădăcina repo-ului — compilare
-javac -d out -sourcepath src (Get-ChildItem -Recurse src -Filter *.java | % { $_.FullName })
-
-# Rulare (directorul de lucru trebuie să fie rădăcina repo-ului pentru ca logs/ să fie creat aici)
-java -cp out main.Main
+javac -d out -cp "cale\spre\postgresql-42.7.11.jar" (Get-ChildItem -Recurse src -Filter *.java).FullName
+java  -cp "out;cale\spre\postgresql-42.7.11.jar" main.Main
 ```
 
-## Fluxul de Utilizare
-
-1. **Înregistrare** — la pornire, introdu numele, emailul și telefonul pentru a crea un cont.
-2. **Meniu principal** — alege între `Restaurante` și `Comenzi`.
-3. **Restaurante** — vizualizează lista sortată, explorează meniul unui restaurant (sortat după preț) sau citește recenziile acestuia.
-4. **Plasare comandă** — alege restaurantul, selectează produsele după număr (ex. `1,3`), confirmă strada și numărul de livrare.
-5. **Ciclu de viață** — avansează manual fiecare etapă cu Enter (confirmare restaurant → gata → ridicare curier → livrare); la confirmare poți tasta `c` pentru anulare din partea restaurantului.
-6. **Recenzie** — după livrare ești invitat să lași un rating și un comentariu; poți reveni oricând din submeniul Comenzi.
-7. **Repetă comandă** — alege o comandă livrată anterior și furnizează o nouă adresă de livrare (în același oraș).
+Pe Linux/macOS separatorul de classpath este `:` în loc de `;`.

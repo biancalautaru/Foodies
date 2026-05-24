@@ -1,110 +1,143 @@
 package main;
 
-import interfaces.IMenuService;
 import interfaces.IOrderService;
 import interfaces.IRestaurantService;
 import interfaces.IUserService;
 import models.*;
 
-public class DataSeeder {
+import java.util.List;
 
-    public static void seed(IUserService userService, IRestaurantService restaurantService, IMenuService menuService, IOrderService orderService) {
-        // Curieri
+public final class DataSeeder {
+
+    private DataSeeder() {}
+
+    private record Customers(Customer customer1, Customer customer2, Customer customer3) {}
+
+    private record Restaurants(Restaurant restaurant1, Restaurant restaurant2, Restaurant restaurant3,
+                               Restaurant restaurant4, Restaurant restaurant5) {}
+
+    private record OrderItems(MenuItem item1, MenuItem item2, MenuItem item3,
+                              MenuItem item4, MenuItem item5, MenuItem item6,
+                              MenuItem item7, MenuItem item8, MenuItem item9) {}
+
+    public static void seed(IUserService userService, IRestaurantService restaurantService, IOrderService orderService) {
+        if (!restaurantService.getRestaurantsSortedByName().isEmpty())
+            return;
+
+        seedDrivers(userService);
+        Customers customers = seedCustomers(userService);
+        Restaurants restaurants = seedRestaurants(restaurantService);
+        OrderItems orderItems = seedMenus(restaurantService, restaurants);
+        seedOrders(orderService, customers, orderItems);
+    }
+
+    private static void seedDrivers(IUserService userService) {
         userService.addDriver(new Driver("D1", "Andrei Dumitrescu", "andrei.d@gmail.com", "0725658576"));
-        userService.addDriver(new Driver("D2", "Elena Vasile",      "elena.v@yahoo.com",  "0774524567"));
-        userService.addDriver(new Driver("D3", "Mihai Popa",        "mihai.p@gmail.com",  "0762345678"));
+        userService.addDriver(new Driver("D2", "Elena Vasile", "elena.v@yahoo.com",  "0774524567"));
+        userService.addDriver(new Driver("D3", "Mihai Popa", "mihai.p@gmail.com",  "0762345678"));
+    }
 
-        // Clienti
-        Customer maria = new Customer("C2", "Maria Ionescu",    "maria.ionescu@gmail.com", "0734565371");
-        Customer radu  = new Customer("C6", "Radu Munteanu",    "radu.m@yahoo.com",        "0756781234");
-        Customer ioana = new Customer("C7", "Ioana Constantin", "ioana.c@gmail.com",       "0743219876");
-        userService.addCustomer(maria);
-        userService.addCustomer(radu);
-        userService.addCustomer(ioana);
+    private static Customers seedCustomers(IUserService userService) {
+        Customer customer1 = new Customer("C1", "Maria Ionescu", "maria.ionescu@gmail.com", "0734565371");
+        Customer customer2 = new Customer("C2", "Radu Munteanu", "radu.m@yahoo.com", "0756781234");
+        Customer customer3 = new Customer("C3", "Ioana Constantin", "ioana.c@gmail.com", "0743219876");
+        userService.addCustomer(customer1);
+        userService.addCustomer(customer2);
+        userService.addCustomer(customer3);
+        return new Customers(customer1, customer2, customer3);
+    }
 
-        // Restaurante
-        Restaurant pizzaPlace = new Restaurant("R1", "Pizza La Mama",   new Address("Str. Amzei",           "12", "București"));
-        Restaurant grillPlace = new Restaurant("R2", "Grill & Burger",  new Address("Bd. Unirii",           "45", "București"));
-        Restaurant sushiPlace = new Restaurant("R3", "Sakura Sushi",    new Address("Str. Calea Victoriei", "88", "București"));
-        Restaurant veganPlace = new Restaurant("R4", "Verde & Sănătos", new Address("Str. Episcopiei",      "5",  "București"));
-        Restaurant tacosPlace = new Restaurant("R5", "El Rancho Tacos", new Address("Bd. Magheru",          "31", "București"));
-        restaurantService.addRestaurant(pizzaPlace);
-        restaurantService.addRestaurant(grillPlace);
-        restaurantService.addRestaurant(sushiPlace);
-        restaurantService.addRestaurant(veganPlace);
-        restaurantService.addRestaurant(tacosPlace);
+    private static Restaurants seedRestaurants(IRestaurantService restaurantService) {
+        Restaurant restaurant1 = new Restaurant("R1", "Pizza La Mama", new Address("Str. Amzei", "12", "București"));
+        Restaurant restaurant2 = new Restaurant("R2", "Grill & Burger", new Address("Bd. Unirii", "45", "București"));
+        Restaurant restaurant3 = new Restaurant("R3", "Sakura Sushi", new Address("Str. Calea Victoriei", "88", "București"));
+        Restaurant restaurant4 = new Restaurant("R4", "Verde & Sănătos", new Address("Str. Episcopiei", "5", "București"));
+        Restaurant restaurant5 = new Restaurant("R5", "El Rancho Tacos", new Address("Bd. Magheru", "31", "București"));
+        restaurantService.addRestaurant(restaurant1);
+        restaurantService.addRestaurant(restaurant2);
+        restaurantService.addRestaurant(restaurant3);
+        restaurantService.addRestaurant(restaurant4);
+        restaurantService.addRestaurant(restaurant5);
+        return new Restaurants(restaurant1, restaurant2, restaurant3, restaurant4, restaurant5);
+    }
 
-        // Meniu R1
-        restaurantService.addMenuItemToRestaurant("R1", new MenuItem("M1", "Pizza Margherita",   "Blat pizza, sos de roșii, mozzarella, busuioc",                   36.99));
-        restaurantService.addMenuItemToRestaurant("R1", new MenuItem("M2", "Pizza Diavola",      "Blat pizza, sos de roșii, mozzarella, salam picant",              42.99));
-        restaurantService.addMenuItemToRestaurant("R1", new MenuItem("M3", "Salată Caesar",      "Salată verde, dressing Caesar",                                   28.99));
-        restaurantService.addMenuItemToRestaurant("R1", new MenuItem("M7", "Calzone Prosciutto", "Blat pizza împăturit, sos de roșii, șuncă, mozzarella, ciuperci", 44.99));
-        restaurantService.addMenuItemToRestaurant("R1", new MenuItem("M8", "Tiramisu",           "Desert italian clasic cu mascarpone",                             22.99));
+    private static OrderItems seedMenus(IRestaurantService r, Restaurants rs) {
+        addItems(r, rs.restaurant1(),
+            new MenuItem("M1", "Pizza Margherita", "Blat pizza, sos de roșii, mozzarella, busuioc", 36.99),
+            new MenuItem("M2", "Pizza Diavola",  "Blat pizza, sos de roșii, mozzarella, salam picant", 42.99),
+            new MenuItem("M3", "Salată Caesar",  "Salată verde, dressing Caesar", 28.99),
+            new MenuItem("M7", "Calzone Prosciutto", "Blat pizza împăturit, sos de roșii, șuncă, mozzarella, ciuperci", 44.99),
+            new MenuItem("M8", "Tiramisu", "Desert italian clasic cu mascarpone", 22.99)
+        );
 
-        // Meniu R2
-        MenuItem burger1 = new MenuItem("M4",  "Burger Clasic",   "Vită, salată, roșii",               32.99);
-        MenuItem burger2 = new MenuItem("M5",  "Burger Deluxe",   "Dublu cheddar, bacon",               45.99);
-        MenuItem fries   = new MenuItem("M6",  "Cartofi prăjiți", "Porție mare, crocant",               16.99);
-        restaurantService.addMenuItemToRestaurant("R2", burger1);
-        restaurantService.addMenuItemToRestaurant("R2", burger2);
-        restaurantService.addMenuItemToRestaurant("R2", fries);
-        restaurantService.addMenuItemToRestaurant("R2", new MenuItem("M9",  "Aripioare BBQ", "Aripioare de pui glazurate, sos BBQ afumat", 38.99));
-        restaurantService.addMenuItemToRestaurant("R2", new MenuItem("M10", "Coleslaw",      "Varză albă, morcov, maioneză ușoară",        12.99));
+        MenuItem item1 = new MenuItem("M4", "Burger Clasic", "Vită, salată, roșii",  32.99);
+        MenuItem item2 = new MenuItem("M5", "Burger Deluxe", "Dublu cheddar, bacon", 45.99);
+        MenuItem item3 = new MenuItem("M6", "Cartofi prăjiți", "Porție mare, crocant", 16.99);
+        addItems(r, rs.restaurant2(),
+            item1, item2, item3,
+            new MenuItem("M9",  "Aripioare BBQ", "Aripioare de pui glazurate, sos BBQ afumat", 38.99),
+            new MenuItem("M10", "Coleslaw", "Varză albă, morcov, maioneză ușoară", 12.99)
+        );
 
-        // Meniu R3
-        MenuItem sushiSalmon = new MenuItem("M11", "Salmon Nigiri (6 buc)", "Somon proaspăt pe orez, sos soia", 39.99);
-        MenuItem sushiTuna   = new MenuItem("M12", "Tuna Roll (8 buc)",     "Ton, avocado, castraveți, nori",   43.99);
-        MenuItem miso        = new MenuItem("M13", "Supă Miso",             "Tofu, alge wakame, ceapă verde",   18.99);
-        restaurantService.addMenuItemToRestaurant("R3", sushiSalmon);
-        restaurantService.addMenuItemToRestaurant("R3", sushiTuna);
-        restaurantService.addMenuItemToRestaurant("R3", miso);
-        restaurantService.addMenuItemToRestaurant("R3", new MenuItem("M14", "Edamame",             "Soia fiartă cu sare grunjoasă",               14.99));
-        restaurantService.addMenuItemToRestaurant("R3", new MenuItem("M15", "Ebi Tempura (4 buc)", "Creveți în aluat crocant, sos ponzu",         49.99));
+        MenuItem item4 = new MenuItem("M11", "Salmon Nigiri (6 buc)", "Somon proaspăt pe orez, sos soia", 39.99);
+        MenuItem item5 = new MenuItem("M12", "Tuna Roll (8 buc)", "Ton, avocado, castraveți, nori",  43.99);
+        MenuItem item6 = new MenuItem("M13", "Supă Miso", "Tofu, alge wakame, ceapă verde", 18.99);
+        addItems(r, rs.restaurant3(),
+            item4, item5, item6,
+            new MenuItem("M14", "Edamame", "Soia fiartă cu sare grunjoasă", 14.99),
+            new MenuItem("M15", "Ebi Tempura (4 buc)", "Creveți în aluat crocant, sos ponzu", 49.99)
+        );
 
-        // Meniu R4
-        MenuItem buddhaVegan = new MenuItem("M16", "Buddha Bowl Vegan", "Quinoa, năut, avocado, legume la cuptor",     37.99);
-        MenuItem smoothie    = new MenuItem("M17", "Smoothie Verde",    "Spanac, banană, ghimbir, lapte de cocos",     19.99);
-        MenuItem hummus      = new MenuItem("M18", "Humus cu Pită",     "Humus de casă, pită integrală, boia afumată", 24.99);
-        restaurantService.addMenuItemToRestaurant("R4", buddhaVegan);
-        restaurantService.addMenuItemToRestaurant("R4", smoothie);
-        restaurantService.addMenuItemToRestaurant("R4", hummus);
-        restaurantService.addMenuItemToRestaurant("R4", new MenuItem("M19", "Falafel Wrap",   "Falafel crocant, tahini, salată, roșii",   31.99));
-        restaurantService.addMenuItemToRestaurant("R4", new MenuItem("M20", "Tort Raw Vegan", "Dată, nuci, cacao crudă, strat mango",     26.99));
+        MenuItem item7 = new MenuItem("M16", "Buddha Bowl Vegan", "Quinoa, năut, avocado, legume la cuptor", 37.99);
+        MenuItem item8 = new MenuItem("M17", "Smoothie Verde", "Spanac, banană, ghimbir, lapte de cocos", 19.99);
+        MenuItem item9 = new MenuItem("M18", "Humus cu Pită", "Humus de casă, pită integrală, boia afumată", 24.99);
+        addItems(r, rs.restaurant4(),
+            item7, item8, item9,
+            new MenuItem("M19", "Falafel Wrap", "Falafel crocant, tahini, salată, roșii", 31.99),
+            new MenuItem("M20", "Tort Raw Vegan", "Dată, nuci, cacao crudă, strat mango", 26.99)
+        );
 
-        // Meniu R5
-        restaurantService.addMenuItemToRestaurant("R5", new MenuItem("M21", "Taco Carne Asada",     "Vită marinată, guacamole, coriandru",              34.99));
-        restaurantService.addMenuItemToRestaurant("R5", new MenuItem("M22", "Taco Pollo",           "Pui la grătar, salsa verde, smântână",             31.99));
-        restaurantService.addMenuItemToRestaurant("R5", new MenuItem("M23", "Nachos cu Chili",      "Tortilla, fasole neagră, cheddar topit",           27.99));
-        restaurantService.addMenuItemToRestaurant("R5", new MenuItem("M24", "Quesadilla Mixta",     "Pui, ardei, cheddar, smântână",                    33.99));
-        restaurantService.addMenuItemToRestaurant("R5", new MenuItem("M25", "Churros cu Ciocolată", "Churros prăjiți, sos de ciocolată neagră",         21.99));
+        addItems(r, rs.restaurant5(),
+            new MenuItem("M21", "Taco Carne Asada", "Vită marinată, guacamole, coriandru", 34.99),
+            new MenuItem("M22", "Taco Pollo", "Pui la grătar, salsa verde, smântână", 31.99),
+            new MenuItem("M23", "Nachos cu Chili", "Tortilla, fasole neagră, cheddar topit", 27.99),
+            new MenuItem("M24", "Quesadilla Mixta", "Pui, ardei, cheddar, smântână", 33.99),
+            new MenuItem("M25", "Churros cu Ciocolată", "Churros prăjiți, sos de ciocolată neagră", 21.99)
+        );
 
-        // Comenzi
-        // #1 Maria — R2: PENDING
-        maria.getCart().addItem(burger1);
-        maria.getCart().addItem(burger2);
-        maria.getCart().addItem(fries);
-        orderService.placeOrder(maria, new Address("Str. Floreasca", "7", "București"));
+        return new OrderItems(item1, item2, item3, item4, item5, item6, item7, item8, item9);
+    }
 
-        // #2 Radu — R3: DELIVERED + recenzie
-        radu.getCart().addItem(sushiSalmon);
-        radu.getCart().addItem(sushiTuna);
-        radu.getCart().addItem(miso);
-        orderService.placeOrder(radu, new Address("Str. Ion Câmpineanu", "10", "București"));
-        orderService.confirmOrder("#2");
-        orderService.markOrderReady("#2");
-        orderService.pickupOrder("#2");
-        orderService.deliverOrder("#2");
-        orderService.submitReview("#2", 5, "Sushi proaspăt și bine prezentat, recomand!");
+    private static void seedOrders(IOrderService orderService, Customers c, OrderItems items) {
+        c.customer1().getCart().addItem(items.item1());
+        c.customer1().getCart().addItem(items.item2());
+        c.customer1().getCart().addItem(items.item3());
+        orderService.placeOrder(c.customer1(), new Address("Str. Floreasca", "7", "București"));
 
-        // #3 Ioana — R4: DELIVERED + recenzie
-        ioana.getCart().addItem(buddhaVegan);
-        ioana.getCart().addItem(smoothie);
-        ioana.getCart().addItem(hummus);
-        orderService.placeOrder(ioana, new Address("Str. Batiștei", "3", "București"));
-        orderService.confirmOrder("#3");
-        orderService.markOrderReady("#3");
-        orderService.pickupOrder("#3");
-        orderService.deliverOrder("#3");
-        orderService.submitReview("#3", 4, "Mâncare sănătoasă și gustoasă, smoothie-ul e delicios.");
+        seedDeliveredOrder(orderService, c.customer2(),
+            new Address("Str. Ion Câmpineanu", "10", "București"),
+            List.of(items.item4(), items.item5(), items.item6()),
+            5, "Sushi proaspăt și bine prezentat, recomand!");
+
+        seedDeliveredOrder(orderService, c.customer3(),
+            new Address("Str. Batiștei", "3", "București"),
+            List.of(items.item7(), items.item8(), items.item9()),
+            4, "Mâncare sănătoasă și gustoasă, smoothie-ul e delicios.");
+    }
+
+    private static void addItems(IRestaurantService svc, Restaurant restaurant, MenuItem... items) {
+        for (MenuItem item : items)
+            svc.addMenuItemToRestaurant(restaurant.getId(), item);
+    }
+
+    private static void seedDeliveredOrder(IOrderService svc, Customer customer, Address address, List<MenuItem> items, int rating, String comment) {
+        for (MenuItem item : items)
+            customer.getCart().addItem(item);
+        Order order = svc.placeOrder(customer, address);
+        svc.confirmOrder(order.getId());
+        svc.markOrderReady(order.getId());
+        svc.pickupOrder(order.getId());
+        svc.deliverOrder(order.getId());
+        svc.submitReview(order.getId(), rating, comment);
     }
 }

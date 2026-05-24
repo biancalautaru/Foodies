@@ -5,25 +5,36 @@ import exceptions.InvalidOrderException;
 import interfaces.IOrderService;
 import interfaces.IUserService;
 import models.*;
+import repository.DriverRepository;
+import repository.OrderRepository;
+import repository.RestaurantRepository;
+import repository.ReviewRepository;
 
 import java.util.ArrayList;
-import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Map;
+import java.util.UUID;
 
 public class OrderService implements IOrderService {
-    private Map<String, Order> orders;
-    private int nextOrderId;
-    private IUserService userService;
+    private final OrderRepository orderRepository;
+    private final RestaurantRepository restaurantRepository;
+    private final ReviewRepository reviewRepository;
+    private final DriverRepository driverRepository;
+    private final IUserService userService;
 
-    public OrderService(IUserService userService) {
-        this.orders = new LinkedHashMap<>();
-        this.nextOrderId = 1;
+    public OrderService(OrderRepository orderRepository,
+                        RestaurantRepository restaurantRepository,
+                        ReviewRepository reviewRepository,
+                        DriverRepository driverRepository,
+                        IUserService userService) {
+        this.orderRepository = orderRepository;
+        this.restaurantRepository = restaurantRepository;
+        this.reviewRepository = reviewRepository;
+        this.driverRepository = driverRepository;
         this.userService = userService;
     }
 
     @Override
-    public void placeOrder(Customer customer, Address address) {
+    public Order placeOrder(Customer customer, Address address) {
         Cart cart = customer.getCart();
         if (cart.isEmpty())
             throw new InvalidOrderException("Coșul este gol.");
@@ -32,16 +43,19 @@ public class OrderService implements IOrderService {
         validateSameCity(restaurant, address);
 
         List<MenuItem> snapshot = new ArrayList<>(cart.getItems());
-        cart.clearCart();
 
-        String orderId = "#" + nextOrderId++;
+        if (address.getId() == null)
+            address.setId(UUID.randomUUID().toString());
+
+        String orderId = UUID.randomUUID().toString();
         Order order = new Order(orderId, customer, restaurant, address);
-
         for (MenuItem item : snapshot)
             order.addItem(item);
 
-        orders.put(orderId, order);
+        orderRepository.create(order);
+        cart.clearCart();
         AuditService.getInstance().log("placeOrder");
+        return order;
     }
 
     @Override
@@ -49,11 +63,12 @@ public class OrderService implements IOrderService {
         Order order = findOrderById(orderId);
 
         if (order.getStatus() != OrderStatus.PENDING)
-            throw new InvalidOrderException("Doar comenzile în așteptare pot fi confirmate. Comanda " + orderId + " este " + order.getStatus().getLabel() + ".");
+            throw new InvalidOrderException("Doar comenzile în așteptare pot fi confirmate. Comanda " + order.getDisplayId() + " este " + order.getStatus().getLabel() + ".");
 
         if (!order.updateStatus(OrderStatus.PREPARING))
-            throw new InvalidOrderException("Nu se poate confirma comanda " + orderId + ".");
+            throw new InvalidOrderException("Nu se poate confirma comanda " + order.getDisplayId() + ".");
 
+        orderRepository.update(order);
         AuditService.getInstance().log("confirmOrder");
     }
 
@@ -62,29 +77,39 @@ public class OrderService implements IOrderService {
         Order order = findOrderById(orderId);
 
         if (order.getStatus() != OrderStatus.PENDING)
-            throw new InvalidOrderException("Restaurantul poate anula doar comenzile în așteptare. Comanda " + orderId + " este " + order.getStatus().getLabel() + ".");
+            throw new InvalidOrderException("Restaurantul poate anula doar comenzile în așteptare. Comanda " + order.getDisplayId() + " este " + order.getStatus().getLabel() + ".");
 
         order.cancelOrder();
+        orderRepository.update(order);
         AuditService.getInstance().log("restaurantCancelOrder");
     }
 
     @Override
-    public void reorder(Customer customer, String originalOrderId, Address deliveryAddress) {
+    public Order reorder(Customer customer, String originalOrderId, Address deliveryAddress) {
         Order original = findOrderById(originalOrderId);
 
         if (!original.getCustomer().getId().equals(customer.getId()))
-            throw new InvalidOrderException("Comanda " + originalOrderId + " nu aparține clientului " + customer.getName() + ".");
+            throw new InvalidOrderException("Comanda " + original.getDisplayId() + " nu aparține clientului " + customer.getName() + ".");
 
         if (original.getStatus() != OrderStatus.DELIVERED)
-            throw new InvalidOrderException("Poți re-comanda doar o comandă livrată. Comanda " + originalOrderId + " este " + original.getStatus().getLabel() + ".");
+            throw new InvalidOrderException("Poți re-comanda doar o comandă livrată. Comanda " + original.getDisplayId() + " este " + original.getStatus().getLabel() + ".");
 
-        validateSameCity(original.getRestaurant(), deliveryAddress);
+        Restaurant restaurant = restaurantRepository.read(original.getRestaurant().getId());
+        validateSameCity(restaurant, deliveryAddress);
 
-        String newOrderId = "#" + nextOrderId++;
+        if (deliveryAddress.getId() == null)
+            deliveryAddress.setId(UUID.randomUUID().toString());
+
+        List<MenuItem> originalItems = orderRepository.readItemsForOrder(originalOrderId);
+        original.setItems(originalItems);
+        original.setRestaurant(restaurant);
+
+        String newOrderId = UUID.randomUUID().toString();
         Order newOrder = original.toNewOrder(newOrderId, deliveryAddress);
-        orders.put(newOrderId, newOrder);
+        orderRepository.create(newOrder);
 
         AuditService.getInstance().log("reorder");
+        return newOrder;
     }
 
     @Override
@@ -92,11 +117,12 @@ public class OrderService implements IOrderService {
         Order order = findOrderById(orderId);
 
         if (order.getStatus() != OrderStatus.PREPARING)
-            throw new InvalidOrderException("Doar comenzile în preparare pot fi marcate ca gata. Comanda " + orderId + " este " + order.getStatus().getLabel() + ".");
+            throw new InvalidOrderException("Doar comenzile în preparare pot fi marcate ca gata. Comanda " + order.getDisplayId() + " este " + order.getStatus().getLabel() + ".");
 
         if (!order.updateStatus(OrderStatus.READY_FOR_PICKUP))
-            throw new InvalidOrderException("Nu se poate marca comanda " + orderId + " ca gata.");
+            throw new InvalidOrderException("Nu se poate marca comanda " + order.getDisplayId() + " ca gata.");
 
+        orderRepository.update(order);
         AuditService.getInstance().log("markOrderReady");
         assignDriversToReadyOrders();
     }
@@ -106,14 +132,15 @@ public class OrderService implements IOrderService {
         Order order = findOrderById(orderId);
 
         if (order.getStatus() != OrderStatus.READY_FOR_PICKUP)
-            throw new InvalidOrderException("Doar comenzile gata pot fi ridicate. Comanda " + orderId + " este " + order.getStatus().getLabel() + ".");
+            throw new InvalidOrderException("Doar comenzile gata pot fi ridicate. Comanda " + order.getDisplayId() + " este " + order.getStatus().getLabel() + ".");
 
         if (order.getDriver() == null)
-            throw new InvalidOrderException("Comanda " + orderId + " nu are un curier asignat.");
+            throw new InvalidOrderException("Comanda " + order.getDisplayId() + " nu are un curier asignat.");
 
         if (!order.updateStatus(OrderStatus.OUT_FOR_DELIVERY))
-            throw new InvalidOrderException("Nu se poate ridica comanda " + orderId + ".");
+            throw new InvalidOrderException("Nu se poate ridica comanda " + order.getDisplayId() + ".");
 
+        orderRepository.update(order);
         AuditService.getInstance().log("pickupOrder");
     }
 
@@ -122,14 +149,15 @@ public class OrderService implements IOrderService {
         Order order = findOrderById(orderId);
 
         if (order.getStatus() != OrderStatus.OUT_FOR_DELIVERY)
-            throw new InvalidOrderException("Doar comenzile aflate în livrare pot fi livrate. Comanda " + orderId + " este " + order.getStatus().getLabel() + ".");
+            throw new InvalidOrderException("Doar comenzile aflate în livrare pot fi livrate. Comanda " + order.getDisplayId() + " este " + order.getStatus().getLabel() + ".");
 
         if (!order.updateStatus(OrderStatus.DELIVERED))
-            throw new InvalidOrderException("Nu se poate livra comanda " + orderId + ".");
+            throw new InvalidOrderException("Nu se poate livra comanda " + order.getDisplayId() + ".");
 
-        Driver driver = order.getDriver();
-        if (driver != null)
-            driver.setAvailable(true);
+        orderRepository.update(order);
+
+        if (order.getDriver() != null)
+            driverRepository.updateAvailability(order.getDriver().getId(), true);
 
         AuditService.getInstance().log("deliverOrder");
         assignDriversToReadyOrders();
@@ -140,52 +168,74 @@ public class OrderService implements IOrderService {
         Order order = findOrderById(orderId);
 
         if (order.getStatus() != OrderStatus.DELIVERED)
-            throw new InvalidOrderException("Poți lăsa recenzii doar pentru comenzile livrate. Comanda " + orderId + " este " + order.getStatus().getLabel() + ".");
+            throw new InvalidOrderException("Poți lăsa recenzii doar pentru comenzile livrate. Comanda " + order.getDisplayId() + " este " + order.getStatus().getLabel() + ".");
 
-        if (order.getReview() != null)
-            throw new InvalidOrderException("Comanda " + orderId + " are deja o recenzie.");
+        if (reviewRepository.readByOrder(orderId) != null)
+            throw new InvalidOrderException("Comanda " + order.getDisplayId() + " are deja o recenzie.");
 
         if (rating < 1 || rating > 5)
             throw new InvalidOrderException("Nota trebuie să fie între 1 și 5. Valoare primită: " + rating + ".");
 
-        Restaurant restaurant = order.getRestaurant();
-        Review review = new Review(String.valueOf(restaurant.getReviewCount() + 1), order.getCustomer(), order.getId(), rating, comment);
-        order.setReview(review);
-        restaurant.addReview(review);
-
+        Review review = new Review(UUID.randomUUID().toString(), order.getCustomer(), orderId, rating, comment);
+        reviewRepository.create(review);
         AuditService.getInstance().log("submitReview");
     }
 
     @Override
     public List<Order> getOrdersByCustomer(String customerId) {
-        List<Order> result = new ArrayList<>();
-        for (Order order : orders.values())
-            if (order.getCustomer().getId().equals(customerId))
-                result.add(order);
-        return result;
+        List<Order> orders = orderRepository.readByCustomer(customerId);
+        for (Order order : orders)
+            hydrate(order);
+        return orders;
+    }
+
+    @Override
+    public Order getOrderById(String orderId) {
+        Order order = orderRepository.read(orderId);
+        if (order == null)
+            throw new EntityNotFoundException("Comanda " + orderId + " nu a fost găsită.");
+        hydrate(order);
+        return order;
+    }
+
+    private void hydrate(Order order) {
+        Restaurant restaurant = restaurantRepository.read(order.getRestaurant().getId());
+        if (restaurant != null)
+            order.setRestaurant(restaurant);
+
+        order.setItems(orderRepository.readItemsForOrder(order.getId()));
+
+        if (order.getDriver() != null) {
+            Driver fullDriver = driverRepository.read(order.getDriver().getId());
+            if (fullDriver != null)
+                order.setDriver(fullDriver);
+        }
+
+        Review review = reviewRepository.readByOrder(order.getId());
+        if (review != null)
+            order.setReview(review);
     }
 
     private void validateSameCity(Restaurant restaurant, Address deliveryAddress) {
-        String restaurantCity = restaurant.getAddress().city();
-        String deliveryCity = deliveryAddress.city();
+        String restaurantCity = restaurant.getAddress().getCity();
+        String deliveryCity = deliveryAddress.getCity();
         if (!restaurantCity.equalsIgnoreCase(deliveryCity))
             throw new InvalidOrderException("Orașul adresei de livrare '" + deliveryCity + "' nu corespunde cu orașul restaurantului '" + restaurantCity + "'.");
     }
 
     private void assignDriversToReadyOrders() {
-        for (Order order : orders.values()) {
-            if (order.getStatus() == OrderStatus.READY_FOR_PICKUP && order.getDriver() == null) {
-                Driver driver = userService.findAvailableDriver();
-                if (driver == null)
-                    break;
-                order.setDriver(driver);
-                driver.setAvailable(false);
-            }
+        for (Order order : orderRepository.readReadyWithoutDriver()) {
+            Driver driver = userService.findAvailableDriver();
+            if (driver == null)
+                break;
+            order.setDriver(driver);
+            orderRepository.update(order);
+            driverRepository.updateAvailability(driver.getId(), false);
         }
     }
 
     private Order findOrderById(String id) {
-        Order order = orders.get(id);
+        Order order = orderRepository.read(id);
         if (order == null)
             throw new EntityNotFoundException("Comanda " + id + " nu a fost găsită.");
         return order;

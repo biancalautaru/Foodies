@@ -10,6 +10,7 @@ import java.util.List;
 
 public class Order implements Displayable {
     private String id;
+    private int number;
     private LocalDateTime date;
     private Customer customer;
     private Restaurant restaurant;
@@ -19,9 +20,12 @@ public class Order implements Displayable {
     private OrderStatus status;
     private Review review;
     private LocalDateTime statusChangeTime;
-    private double cancellationFee;
 
     private static final double DELIVERY_FEE = 10;
+
+    public Order() {
+        this.items = new ArrayList<>();
+    }
 
     public Order(String id, Customer customer, Restaurant restaurant, Address deliveryAddress) {
         this.id = id;
@@ -32,51 +36,49 @@ public class Order implements Displayable {
         this.items = new ArrayList<>();
         this.status = OrderStatus.PENDING;
         this.statusChangeTime = LocalDateTime.now();
-        this.cancellationFee = 0;
     }
 
-    public String getId() {
-        return id;
-    }
+    public String getId() { return id; }
+    public void setId(String id) { this.id = id; }
 
-    public LocalDateTime getDate() {
-        return date;
-    }
+    public int getNumber() { return number; }
+    public void setNumber(int number) { this.number = number; }
 
-    public Customer getCustomer() {
-        return customer;
-    }
+    public String getDisplayId() { return "#" + number; }
 
-    public Restaurant getRestaurant() {
-        return restaurant;
-    }
+    public LocalDateTime getDate() { return date; }
+    public void setDate(LocalDateTime date) { this.date = date; }
 
-    public Address getDeliveryAddress() {
-        return deliveryAddress;
-    }
+    public Customer getCustomer() { return customer; }
+    public void setCustomer(Customer customer) { this.customer = customer; }
 
-    public Driver getDriver() {
-        return driver;
-    }
+    public Restaurant getRestaurant() { return restaurant; }
+    public void setRestaurant(Restaurant restaurant) { this.restaurant = restaurant; }
 
-    public void setDriver(Driver driver) {
-        this.driver = driver;
-    }
+    public Address getDeliveryAddress() { return deliveryAddress; }
+    public void setDeliveryAddress(Address deliveryAddress) { this.deliveryAddress = deliveryAddress; }
 
-    public OrderStatus getStatus() {
-        return status;
-    }
+    public Driver getDriver() { return driver; }
+    public void setDriver(Driver driver) { this.driver = driver; }
 
-    public String getStatusChangeTime() {
-        return statusChangeTime.format(DateTimeFormatter.ofPattern("HH:mm"));
-    }
+    public OrderStatus getStatus() { return status; }
+    public void setStatus(OrderStatus status) { this.status = status; }
 
-    public Review getReview() {
-        return review;
-    }
+    public String getStatusChangeTime() { return statusChangeTime.format(DateTimeFormatter.ofPattern("HH:mm")); }
 
-    public void setReview(Review review) {
-        this.review = review;
+    public LocalDateTime getStatusChangeDateTime() { return statusChangeTime; }
+    public void setStatusChangeTime(LocalDateTime statusChangeTime) { this.statusChangeTime = statusChangeTime; }
+
+    public Review getReview() { return review; }
+    public void setReview(Review review) { this.review = review; }
+
+    public List<MenuItem> getItems() { return Collections.unmodifiableList(items); }
+    public void setItems(List<MenuItem> items) { this.items = new ArrayList<>(items); }
+
+    public double getDeliveryFee() { return DELIVERY_FEE; }
+
+    public void addItem(MenuItem item) {
+        items.add(item);
     }
 
     public double getSubtotal() {
@@ -86,20 +88,8 @@ public class Order implements Displayable {
         return subtotal;
     }
 
-    public double getDeliveryFee() {
-        return DELIVERY_FEE;
-    }
-
     public double getTotal() {
         return getSubtotal() + getDeliveryFee();
-    }
-
-    public List<MenuItem> getItems() {
-        return Collections.unmodifiableList(items);
-    }
-
-    public void addItem(MenuItem item) {
-        items.add(item);
     }
 
     public boolean updateStatus(OrderStatus newStatus) {
@@ -108,6 +98,7 @@ public class Order implements Displayable {
             statusChangeTime = LocalDateTime.now();
             return true;
         }
+
         return false;
     }
 
@@ -115,39 +106,25 @@ public class Order implements Displayable {
         if (status == OrderStatus.DELIVERED || status == OrderStatus.CANCELLED)
             return false;
 
-        cancellationFee = computeCancellationFee();
         status = OrderStatus.CANCELLED;
         statusChangeTime = LocalDateTime.now();
-        return true;
-    }
 
-    private double computeCancellationFee() {
-        switch (status) {
-            case READY_FOR_PICKUP:
-                return 0.30 * getSubtotal();
-            case OUT_FOR_DELIVERY:
-                return getSubtotal() + DELIVERY_FEE;
-            default:
-                return 0;
-        }
+        return true;
     }
 
     private boolean isValidStatusTransition(OrderStatus oldStatus, OrderStatus newStatus) {
         if (oldStatus == newStatus)
             return false;
+
         if (oldStatus == OrderStatus.CANCELLED || newStatus == OrderStatus.CANCELLED)
             return false;
+
         switch (oldStatus) {
-            case PENDING:
-                return newStatus == OrderStatus.PREPARING;
-            case PREPARING:
-                return newStatus == OrderStatus.READY_FOR_PICKUP;
-            case READY_FOR_PICKUP:
-                return newStatus == OrderStatus.OUT_FOR_DELIVERY;
-            case OUT_FOR_DELIVERY:
-                return newStatus == OrderStatus.DELIVERED;
-            default:
-                return false;
+            case PENDING: return newStatus == OrderStatus.PREPARING;
+            case PREPARING: return newStatus == OrderStatus.READY_FOR_PICKUP;
+            case READY_FOR_PICKUP: return newStatus == OrderStatus.OUT_FOR_DELIVERY;
+            case OUT_FOR_DELIVERY: return newStatus == OrderStatus.DELIVERED;
+            default: return false;
         }
     }
 
@@ -162,26 +139,27 @@ public class Order implements Displayable {
         this.status = source.status;
         this.review = source.review;
         this.statusChangeTime = source.statusChangeTime;
-        this.cancellationFee = source.cancellationFee;
     }
 
     public Order toNewOrder(String newId, Address newDeliveryAddress) {
         Order newOrder = new Order(this);
         newOrder.id = newId;
+        newOrder.number = 0;
         newOrder.date = LocalDateTime.now();
         newOrder.deliveryAddress = newDeliveryAddress;
         newOrder.status = OrderStatus.PENDING;
         newOrder.statusChangeTime = LocalDateTime.now();
         newOrder.driver = null;
         newOrder.review = null;
-        newOrder.cancellationFee = 0;
         return newOrder;
     }
 
     @Override
     public String toDisplayString() {
-        return "Comanda " + id + " | " + restaurant.getName() + " | " +
-                status.getLabel() + " | " + String.format("%.2f", getTotal()) + " lei";
+        return "Comanda " + getDisplayId() + " | " +
+               restaurant.getName() + " | " +
+               status.getLabel() + " | " +
+               String.format("%.2f", getTotal()) + " lei";
     }
 
     @Override

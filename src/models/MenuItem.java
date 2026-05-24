@@ -13,6 +13,8 @@ public class MenuItem implements Comparable<MenuItem>, Displayable {
 
     public static final Comparator<MenuItem> BY_PRICE = Comparator.comparingDouble(MenuItem::getPrice);
 
+    public MenuItem() {}
+
     public MenuItem(String id, String name, String description, double price) {
         this.id = id;
         this.name = name;
@@ -21,25 +23,20 @@ public class MenuItem implements Comparable<MenuItem>, Displayable {
         this.restaurant = null;
     }
 
-    public String getName() {
-        return name;
-    }
+    public String getId() { return id; }
+    public void setId(String id) { this.id = id; }
 
-    public String getDescription() {
-        return description;
-    }
+    public String getName() { return name; }
+    public void setName(String name) { this.name = name; }
 
-    public double getPrice() {
-        return price;
-    }
+    public String getDescription() { return description; }
+    public void setDescription(String description) { this.description = description; }
 
-    public Restaurant getRestaurant() {
-        return restaurant;
-    }
+    public double getPrice() { return price; }
+    public void setPrice(double price) { this.price = price; }
 
-    void setRestaurant(Restaurant restaurant) {
-        this.restaurant = restaurant;
-    }
+    public Restaurant getRestaurant() { return restaurant; }
+    public void setRestaurant(Restaurant restaurant) { this.restaurant = restaurant; }
 
     @Override
     public int compareTo(MenuItem other) {

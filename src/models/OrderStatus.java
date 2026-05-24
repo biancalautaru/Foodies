@@ -14,7 +14,5 @@ public enum OrderStatus {
         this.label = label;
     }
 
-    public String getLabel() {
-        return label;
-    }
+    public String getLabel() { return label; }
 }

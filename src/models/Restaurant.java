@@ -30,6 +30,11 @@ public class Restaurant implements Comparable<Restaurant>, Reviewable, Displayab
         return a.getName().compareToIgnoreCase(b.getName());
     };
 
+    public Restaurant() {
+        this.menu = new ArrayList<>();
+        this.reviews = new ArrayList<>();
+    }
+
     public Restaurant(String id, String name, Address address) {
         this.id = id;
         this.name = name;
@@ -38,25 +43,20 @@ public class Restaurant implements Comparable<Restaurant>, Reviewable, Displayab
         this.reviews = new ArrayList<>();
     }
 
-    public String getId() {
-        return id;
-    }
+    public String getId() { return id; }
+    public void setId(String id) { this.id = id; }
 
-    public String getName() {
-        return name;
-    }
+    public String getName() { return name; }
+    public void setName(String name) { this.name = name; }
 
-    public Address getAddress() {
-        return address;
-    }
+    public Address getAddress() { return address; }
+    public void setAddress(Address address) { this.address = address; }
 
-    public List<MenuItem> getMenu() {
-        return Collections.unmodifiableList(menu);
-    }
+    public List<MenuItem> getMenu() { return Collections.unmodifiableList(menu); }
+    public void setMenu(List<MenuItem> menu) { this.menu = menu; }
 
-    public List<Review> getReviews() {
-        return Collections.unmodifiableList(reviews);
-    }
+    public List<Review> getReviews() { return Collections.unmodifiableList(reviews); }
+    public void setReviews(List<Review> reviews) { this.reviews = reviews; }
 
     public void addMenuItem(MenuItem menuItem) {
         menu.add(menuItem);
@@ -64,22 +64,20 @@ public class Restaurant implements Comparable<Restaurant>, Reviewable, Displayab
     }
 
     @Override
-    public void addReview(Review review) {
-        reviews.add(review);
-    }
+    public void addReview(Review review) { reviews.add(review); }
 
     @Override
-    public int getReviewCount() {
-        return reviews.size();
-    }
+    public int getReviewCount() { return reviews.size(); }
 
     @Override
     public double getAverageRating() {
         if (reviews.isEmpty())
             return 0.0;
+
         int sum = 0;
         for (Review r : reviews)
-            sum += r.rating();
+            sum += r.getRating();
+
         return (double) sum / reviews.size();
     }
 

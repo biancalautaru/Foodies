@@ -15,13 +15,9 @@ public class Cart {
         this.restaurant = null;
     }
 
-    public List<MenuItem> getItems() {
-        return Collections.unmodifiableList(items);
-    }
+    public List<MenuItem> getItems() { return Collections.unmodifiableList(items); }
 
-    public Restaurant getRestaurant() {
-        return restaurant;
-    }
+    public Restaurant getRestaurant() { return restaurant; }
 
     public void addItem(MenuItem item) {
         Restaurant itemRestaurant = item.getRestaurant();

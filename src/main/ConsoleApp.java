@@ -1,5 +1,6 @@
 package main;
 
+import config.DatabaseConfiguration;
 import exceptions.FoodiesException;
 import interfaces.IMenuService;
 import interfaces.IOrderService;
@@ -29,9 +30,13 @@ public class ConsoleApp {
     }
 
     public void start() {
-        DataSeeder.seed(userService, restaurantService, menuService, orderService);
-        runInteractiveMode();
-        scanner.close();
+        try {
+            DataSeeder.seed(userService, restaurantService, orderService);
+            runInteractiveMode();
+        } finally {
+            scanner.close();
+            DatabaseConfiguration.getInstance().closeConnection();
+        }
     }
 
     public void runInteractiveMode() {
@@ -174,16 +179,14 @@ public class ConsoleApp {
         String street = scanner.nextLine().trim();
         System.out.print("Număr: ");
         String number = scanner.nextLine().trim();
-        Address deliveryAddress = new Address(street, number, restaurant.getAddress().city());
+        Address deliveryAddress = new Address(street, number, restaurant.getAddress().getCity());
 
         Cart cart = currentUser.getCart();
         cart.clearCart();
         try {
             for (MenuItem item : selected) cart.addItem(item);
-            orderService.placeOrder(currentUser, deliveryAddress);
-            List<Order> myOrders = orderService.getOrdersByCustomer(currentUser.getId());
-            Order newOrder = myOrders.get(myOrders.size() - 1);
-            System.out.println("\nComanda " + newOrder.getId() + " plasată cu succes. Stare: " +
+            Order newOrder = orderService.placeOrder(currentUser, deliveryAddress);
+            System.out.println("\nComanda " + newOrder.getDisplayId() + " plasată cu succes. Stare: " +
                     newOrder.getStatus().getLabel() + ". [" + newOrder.getStatusChangeTime() + "]");
             runOrderLifecycle(newOrder);
         } catch (FoodiesException e) {
@@ -200,8 +203,8 @@ public class ConsoleApp {
             System.out.println("Nu s-au găsit comenzi.");
         else
             for (Order order : orders) {
-                String ratingInfo = order.getReview() != null ? " | Rating: " + order.getReview().rating() + "/5" : "";
-                System.out.println("Comanda " + order.getId() + " | " + order.getDate().format(formatter) +
+                String ratingInfo = order.getReview() != null ? " | Rating: " + order.getReview().getRating() + "/5" : "";
+                System.out.println("Comanda " + order.getDisplayId() + " | " + order.getDate().format(formatter) +
                                    " | " + order.getRestaurant().getName() + " | " + order.getStatus().getLabel() +
                                    " | Total: " + String.format("%.2f", order.getTotal()) + " lei" + ratingInfo);
             }
@@ -215,7 +218,7 @@ public class ConsoleApp {
         System.out.println("\nComenzi disponibile pentru recenzie:");
         for (int i = 0; i < reviewable.size(); i++) {
             Order o = reviewable.get(i);
-            System.out.println("  " + (i + 1) + ". " + o.getId() + " — " +
+            System.out.println("  " + (i + 1) + ". " + o.getDisplayId() + " — " +
                     o.getRestaurant().getName() + " (" + String.format("%.2f", o.getTotal()) + " lei)");
         }
         System.out.print("Alege comanda: ");
@@ -231,7 +234,7 @@ public class ConsoleApp {
         System.out.println("\nComenzi livrate:");
         for (int i = 0; i < delivered.size(); i++) {
             Order o = delivered.get(i);
-            System.out.println("  " + (i + 1) + ". " + o.getId() + " — " +
+            System.out.println("  " + (i + 1) + ". " + o.getDisplayId() + " — " +
                     o.getRestaurant().getName() + " (" + String.format("%.2f", o.getTotal()) + " lei)");
         }
         System.out.print("Alege comanda de repetat: ");
@@ -242,12 +245,10 @@ public class ConsoleApp {
         String street = scanner.nextLine().trim();
         System.out.print("Număr: ");
         String number = scanner.nextLine().trim();
-        Address newAddress = new Address(street, number, selected.getRestaurant().getAddress().city());
+        Address newAddress = new Address(street, number, selected.getRestaurant().getAddress().getCity());
         try {
-            orderService.reorder(currentUser, selected.getId(), newAddress);
-            List<Order> myOrders = orderService.getOrdersByCustomer(currentUser.getId());
-            Order newOrder = myOrders.get(myOrders.size() - 1);
-            System.out.println("\nComanda " + newOrder.getId() + " plasată (repetată din " + selected.getId() +
+            Order newOrder = orderService.reorder(currentUser, selected.getId(), newAddress);
+            System.out.println("\nComanda " + newOrder.getDisplayId() + " plasată (repetată din " + selected.getDisplayId() +
                     "). Stare: " + newOrder.getStatus().getLabel() + ". [" + newOrder.getStatusChangeTime() + "]");
             runOrderLifecycle(newOrder);
         } catch (FoodiesException e) {
@@ -263,14 +264,14 @@ public class ConsoleApp {
         System.out.println("\nAlegeți comanda:");
         for (int i = 0; i < orders.size(); i++) {
             Order o = orders.get(i);
-            System.out.println("  " + (i + 1) + ". " + o.getId() + " — " + o.getRestaurant().getName() +
+            System.out.println("  " + (i + 1) + ". " + o.getDisplayId() + " — " + o.getRestaurant().getName() +
                     " | " + o.getDate().format(formatter) + " | " + o.getStatus().getLabel());
         }
         System.out.print("Număr: ");
         int choice = readInt();
         if (choice < 1 || choice > orders.size()) { System.out.println("Opțiune invalidă.\n"); return; }
         Order selected = orders.get(choice - 1);
-        System.out.println("\n===== DETALII COMANDĂ " + selected.getId() + " =====");
+        System.out.println("\n===== DETALII COMANDĂ " + selected.getDisplayId() + " =====");
         System.out.println("Restaurant: " + selected.getRestaurant().getName());
         System.out.println("Data: " + selected.getDate().format(formatter));
         System.out.println("Stare: " + selected.getStatus().getLabel());
@@ -281,7 +282,7 @@ public class ConsoleApp {
         System.out.println("Livrare: " + String.format("%.2f", selected.getDeliveryFee()) + " lei");
         System.out.println("Total: " + String.format("%.2f", selected.getTotal()) + " lei");
         if (selected.getReview() != null)
-            System.out.println("Recenzia ta: " + selected.getReview().rating() + "/5 — " + selected.getReview().comment());
+            System.out.println("Recenzia ta: " + selected.getReview().getRating() + "/5 — " + selected.getReview().getComment());
         System.out.println("==========================================\n");
     }
 
@@ -299,8 +300,8 @@ public class ConsoleApp {
     }
 
     private void runOrderLifecycle(Order order) {
-        if (simulateOrderProgression(order.getId(), order)) {
-            System.out.println("Comanda " + order.getId() + " livrată! Total: " +
+        if (simulateOrderProgression(order)) {
+            System.out.println("Comanda " + order.getDisplayId() + " livrată! Total: " +
                     String.format("%.2f", order.getTotal()) + " lei\n");
             promptForReviewAfterDelivery(order);
         }
@@ -315,28 +316,34 @@ public class ConsoleApp {
         }
     }
 
-    private boolean simulateOrderProgression(String orderId, Order order) {
+    private boolean simulateOrderProgression(Order order) {
+        String orderId = order.getId();
+        String displayId = order.getDisplayId();
+
         System.out.print("Apasă Enter când restaurantul confirmă comanda, sau 'c' pentru anulare: ");
         if (scanner.nextLine().trim().equalsIgnoreCase("c")) {
             orderService.restaurantCancelOrder(orderId);
-            System.out.println("Comanda " + orderId + " a fost anulată de restaurant.\n");
+            System.out.println("Comanda " + displayId + " a fost anulată de restaurant.\n");
             return false;
         }
         orderService.confirmOrder(orderId);
-        System.out.println("Comanda confirmată de restaurant. Stare: " + order.getStatus().getLabel() +
-                ". [" + order.getStatusChangeTime() + "]");
+        Order current = orderService.getOrderById(orderId);
+        System.out.println("Comanda confirmată de restaurant. Stare: " + current.getStatus().getLabel() +
+                ". [" + current.getStatusChangeTime() + "]");
 
         System.out.print("Apasă Enter când restaurantul marchează comanda gata: ");
         scanner.nextLine();
         orderService.markOrderReady(orderId);
-        String driverName = order.getDriver() != null ? order.getDriver().getName() : "necunoscut";
-        System.out.println("Comanda e gata de ridicare (" + order.getStatus().getLabel() +
-                "). Curier asignat: " + driverName + ". [" + order.getStatusChangeTime() + "]");
+        current = orderService.getOrderById(orderId);
+        String driverName = current.getDriver() != null ? current.getDriver().getName() : "necunoscut";
+        System.out.println("Comanda e gata de ridicare (" + current.getStatus().getLabel() +
+                "). Curier asignat: " + driverName + ". [" + current.getStatusChangeTime() + "]");
 
         System.out.print("Apasă Enter când curierul ridică comanda: ");
         scanner.nextLine();
         orderService.pickupOrder(orderId);
-        System.out.println("Stare: " + order.getStatus().getLabel() + ". [" + order.getStatusChangeTime() + "]");
+        current = orderService.getOrderById(orderId);
+        System.out.println("Stare: " + current.getStatus().getLabel() + ". [" + current.getStatusChangeTime() + "]");
 
         System.out.print("Apasă Enter când comanda este livrată: ");
         scanner.nextLine();

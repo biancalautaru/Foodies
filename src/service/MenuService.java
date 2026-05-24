@@ -3,6 +3,8 @@ package service;
 import interfaces.IMenuService;
 import interfaces.IRestaurantService;
 import models.MenuItem;
+import models.Restaurant;
+import repository.MenuItemRepository;
 
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -10,9 +12,11 @@ import java.util.List;
 
 public class MenuService implements IMenuService {
     private final IRestaurantService restaurantService;
+    private final MenuItemRepository menuItemRepository;
 
-    public MenuService(IRestaurantService restaurantService) {
+    public MenuService(IRestaurantService restaurantService, MenuItemRepository menuItemRepository) {
         this.restaurantService = restaurantService;
+        this.menuItemRepository = menuItemRepository;
     }
 
     @Override
@@ -26,7 +30,9 @@ public class MenuService implements IMenuService {
     }
 
     private List<MenuItem> sortedMenu(String restaurantId, Comparator<MenuItem> comparator) {
-        List<MenuItem> sorted = new ArrayList<>(restaurantService.findRestaurantById(restaurantId).getMenu());
+        Restaurant restaurant = restaurantService.findRestaurantById(restaurantId);
+        List<MenuItem> sorted = new ArrayList<>(menuItemRepository.readByRestaurant(restaurantId));
+        sorted.forEach(item -> item.setRestaurant(restaurant));
         sorted.sort(comparator);
         return sorted;
     }
