@@ -5,12 +5,10 @@ Aplicație de tip food-delivery în Java, accesibilă din consolă. Clientul î�
 ## 📋 Cuprins
 
 - [✨ Funcționalități](#-funcționalități)
-- [⚙️ Detalii tehnice](#-detalii-tehnice)
 - [📁 Structura proiectului](#-structura-proiectului)
 - [🧩 Clasele](#-clasele)
 - [🗄️ Baza de date](#-baza-de-date)
 - [▶️ Cum se rulează](#-cum-se-rulează)
-- [✅ Maparea pe cerințele proiectului](#-maparea-pe-cerințele-proiectului)
 
 ## ✨ Funcționalități
 
