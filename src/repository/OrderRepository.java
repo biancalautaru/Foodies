@@ -17,7 +17,6 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class OrderRepository implements GenericRepository<Order, String> {
-
     private static final String SQL_INSERT_ADDRESS =
             "INSERT INTO addresses (id, street, number, city) VALUES (?, ?, ?, ?)" +
             " ON CONFLICT (id) DO NOTHING";

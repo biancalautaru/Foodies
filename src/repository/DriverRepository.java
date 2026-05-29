@@ -12,19 +12,19 @@ import java.util.List;
 
 public class DriverRepository implements GenericRepository<Driver, String> {
     private static final String SQL_INSERT =
-            "INSERT INTO drivers (id, name, email, phone, is_available) VALUES (?, ?, ?, ?, ?)";
+            "INSERT INTO drivers (id, name, email, is_available) VALUES (?, ?, ?, ?)";
 
     private static final String SQL_SELECT_BY_ID =
-            "SELECT id, name, email, phone, is_available FROM drivers WHERE id = ?";
+            "SELECT id, name, email, is_available FROM drivers WHERE id = ?";
 
     private static final String SQL_SELECT_ALL =
-            "SELECT id, name, email, phone, is_available FROM drivers";
+            "SELECT id, name, email, is_available FROM drivers";
 
     private static final String SQL_SELECT_AVAILABLE =
-            "SELECT id, name, email, phone, is_available FROM drivers WHERE is_available = TRUE LIMIT 1";
+            "SELECT id, name, email, is_available FROM drivers WHERE is_available = TRUE LIMIT 1";
 
     private static final String SQL_UPDATE =
-            "UPDATE drivers SET name = ?, email = ?, phone = ?, is_available = ? WHERE id = ?";
+            "UPDATE drivers SET name = ?, email = ?, is_available = ? WHERE id = ?";
 
     private static final String SQL_UPDATE_AVAILABILITY =
             "UPDATE drivers SET is_available = ? WHERE id = ?";
@@ -44,8 +44,7 @@ public class DriverRepository implements GenericRepository<Driver, String> {
             stmt.setString(1, driver.getId());
             stmt.setString(2, driver.getName());
             stmt.setString(3, driver.getEmail());
-            stmt.setString(4, driver.getPhone());
-            stmt.setBoolean(5, driver.isAvailable());
+            stmt.setBoolean(4, driver.isAvailable());
             stmt.executeUpdate();
         } catch (SQLException e) {
             throw new RuntimeException("DriverRepository: create failed for id=" + driver.getId(), e);
@@ -98,9 +97,8 @@ public class DriverRepository implements GenericRepository<Driver, String> {
         try (PreparedStatement stmt = connection.prepareStatement(SQL_UPDATE)) {
             stmt.setString(1, driver.getName());
             stmt.setString(2, driver.getEmail());
-            stmt.setString(3, driver.getPhone());
-            stmt.setBoolean(4, driver.isAvailable());
-            stmt.setString(5, driver.getId());
+            stmt.setBoolean(3, driver.isAvailable());
+            stmt.setString(4, driver.getId());
             stmt.executeUpdate();
         } catch (SQLException e) {
             throw new RuntimeException("DriverRepository: update failed for id=" + driver.getId(), e);
@@ -133,7 +131,6 @@ public class DriverRepository implements GenericRepository<Driver, String> {
         driver.setId(rs.getString("id"));
         driver.setName(rs.getString("name"));
         driver.setEmail(rs.getString("email"));
-        driver.setPhone(rs.getString("phone"));
         driver.setAvailable(rs.getBoolean("is_available"));
         return driver;
     }

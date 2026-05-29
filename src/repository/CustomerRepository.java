@@ -12,16 +12,19 @@ import java.util.List;
 
 public class CustomerRepository implements GenericRepository<Customer, String> {
     private static final String SQL_INSERT =
-            "INSERT INTO customers (id, name, email, phone) VALUES (?, ?, ?, ?)";
+            "INSERT INTO customers (id, name, email, password) VALUES (?, ?, ?, ?)";
 
     private static final String SQL_SELECT_BY_ID =
-            "SELECT id, name, email, phone FROM customers WHERE id = ?";
+            "SELECT id, name, email, password FROM customers WHERE id = ?";
+
+    private static final String SQL_SELECT_BY_EMAIL =
+            "SELECT id, name, email, password FROM customers WHERE email = ?";
 
     private static final String SQL_SELECT_ALL =
-            "SELECT id, name, email, phone FROM customers";
+            "SELECT id, name, email, password FROM customers";
 
     private static final String SQL_UPDATE =
-            "UPDATE customers SET name = ?, email = ?, phone = ? WHERE id = ?";
+            "UPDATE customers SET name = ?, email = ?, password = ? WHERE id = ?";
 
     private static final String SQL_DELETE =
             "DELETE FROM customers WHERE id = ?";
@@ -38,7 +41,7 @@ public class CustomerRepository implements GenericRepository<Customer, String> {
             stmt.setString(1, customer.getId());
             stmt.setString(2, customer.getName());
             stmt.setString(3, customer.getEmail());
-            stmt.setString(4, customer.getPhone());
+            stmt.setString(4, customer.getPassword());
             stmt.executeUpdate();
         } catch (SQLException e) {
             throw new RuntimeException("CustomerRepository: create failed for id=" + customer.getId(), e);
@@ -74,12 +77,26 @@ public class CustomerRepository implements GenericRepository<Customer, String> {
         return result;
     }
 
+    public Customer readByEmail(String email) {
+        try (PreparedStatement stmt = connection.prepareStatement(SQL_SELECT_BY_EMAIL)) {
+            stmt.setString(1, email);
+            try (ResultSet rs = stmt.executeQuery()) {
+                if (rs.next()) {
+                    return mapRow(rs);
+                }
+            }
+        } catch (SQLException e) {
+            throw new RuntimeException("CustomerRepository: readByEmail failed for email=" + email, e);
+        }
+        return null;
+    }
+
     @Override
     public void update(Customer customer) {
         try (PreparedStatement stmt = connection.prepareStatement(SQL_UPDATE)) {
             stmt.setString(1, customer.getName());
             stmt.setString(2, customer.getEmail());
-            stmt.setString(3, customer.getPhone());
+            stmt.setString(3, customer.getPassword());
             stmt.setString(4, customer.getId());
             stmt.executeUpdate();
         } catch (SQLException e) {
@@ -102,7 +119,7 @@ public class CustomerRepository implements GenericRepository<Customer, String> {
         customer.setId(rs.getString("id"));
         customer.setName(rs.getString("name"));
         customer.setEmail(rs.getString("email"));
-        customer.setPhone(rs.getString("phone"));
+        customer.setPassword(rs.getString("password"));
         return customer;
     }
 }

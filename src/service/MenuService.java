@@ -6,8 +6,6 @@ import models.MenuItem;
 import models.Restaurant;
 import repository.MenuItemRepository;
 
-import java.util.ArrayList;
-import java.util.Comparator;
 import java.util.List;
 
 public class MenuService implements IMenuService {
@@ -20,20 +18,10 @@ public class MenuService implements IMenuService {
     }
 
     @Override
-    public List<MenuItem> getMenuSortedByName(String restaurantId) {
-        return sortedMenu(restaurantId, Comparator.naturalOrder());
-    }
-
-    @Override
-    public List<MenuItem> getMenuSortedByPrice(String restaurantId) {
-        return sortedMenu(restaurantId, MenuItem.BY_PRICE);
-    }
-
-    private List<MenuItem> sortedMenu(String restaurantId, Comparator<MenuItem> comparator) {
+    public List<MenuItem> getMenu(String restaurantId) {
         Restaurant restaurant = restaurantService.findRestaurantById(restaurantId);
-        List<MenuItem> sorted = new ArrayList<>(menuItemRepository.readByRestaurant(restaurantId));
-        sorted.forEach(item -> item.setRestaurant(restaurant));
-        sorted.sort(comparator);
-        return sorted;
+        List<MenuItem> items = menuItemRepository.readByRestaurant(restaurantId);
+        items.forEach(item -> item.setRestaurant(restaurant));
+        return items;
     }
 }

@@ -2,16 +2,12 @@ package models;
 
 import interfaces.Displayable;
 
-import java.util.Comparator;
-
-public class MenuItem implements Comparable<MenuItem>, Displayable {
+public class MenuItem implements Displayable {
     private String id;
     private String name;
     private String description;
     private double price;
     private Restaurant restaurant;
-
-    public static final Comparator<MenuItem> BY_PRICE = Comparator.comparingDouble(MenuItem::getPrice);
 
     public MenuItem() {}
 
@@ -37,11 +33,6 @@ public class MenuItem implements Comparable<MenuItem>, Displayable {
 
     public Restaurant getRestaurant() { return restaurant; }
     public void setRestaurant(Restaurant restaurant) { this.restaurant = restaurant; }
-
-    @Override
-    public int compareTo(MenuItem other) {
-        return this.name.compareToIgnoreCase(other.name);
-    }
 
     @Override
     public String toDisplayString() {

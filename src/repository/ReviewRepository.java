@@ -13,31 +13,30 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class ReviewRepository implements GenericRepository<Review, String> {
-
     private static final String SQL_INSERT =
             "INSERT INTO reviews (id, customer_id, order_id, rating, comment, date)" +
             " VALUES (?, ?, ?, ?, ?, ?)";
 
     private static final String SQL_SELECT_BY_ID =
             "SELECT rv.id, rv.customer_id, rv.order_id, rv.rating, rv.comment, rv.date," +
-            " c.name AS customer_name, c.email AS customer_email, c.phone AS customer_phone" +
+            " c.name AS customer_name, c.email AS customer_email" +
             " FROM reviews rv JOIN customers c ON rv.customer_id = c.id" +
             " WHERE rv.id = ?";
 
     private static final String SQL_SELECT_ALL =
             "SELECT rv.id, rv.customer_id, rv.order_id, rv.rating, rv.comment, rv.date," +
-            " c.name AS customer_name, c.email AS customer_email, c.phone AS customer_phone" +
+            " c.name AS customer_name, c.email AS customer_email" +
             " FROM reviews rv JOIN customers c ON rv.customer_id = c.id";
 
     private static final String SQL_SELECT_BY_ORDER =
             "SELECT rv.id, rv.customer_id, rv.order_id, rv.rating, rv.comment, rv.date," +
-            " c.name AS customer_name, c.email AS customer_email, c.phone AS customer_phone" +
+            " c.name AS customer_name, c.email AS customer_email" +
             " FROM reviews rv JOIN customers c ON rv.customer_id = c.id" +
             " WHERE rv.order_id = ?";
 
     private static final String SQL_SELECT_BY_RESTAURANT =
             "SELECT rv.id, rv.customer_id, rv.order_id, rv.rating, rv.comment, rv.date," +
-            " c.name AS customer_name, c.email AS customer_email, c.phone AS customer_phone" +
+            " c.name AS customer_name, c.email AS customer_email" +
             " FROM reviews rv JOIN orders o ON rv.order_id = o.id" +
             " JOIN customers c ON rv.customer_id = c.id" +
             " WHERE o.restaurant_id = ?";
@@ -156,7 +155,6 @@ public class ReviewRepository implements GenericRepository<Review, String> {
         customer.setId(rs.getString("customer_id"));
         customer.setName(rs.getString("customer_name"));
         customer.setEmail(rs.getString("customer_email"));
-        customer.setPhone(rs.getString("customer_phone"));
 
         Review review = new Review();
         review.setId(rs.getString("id"));

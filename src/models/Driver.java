@@ -8,8 +8,8 @@ public class Driver extends User {
         this.isAvailable = true;
     }
 
-    public Driver(String id, String name, String email, String phone) {
-        super(id, name, email, phone);
+    public Driver(String id, String name, String email) {
+        super(id, name, email);
         this.isAvailable = true;
     }
 

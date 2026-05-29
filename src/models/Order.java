@@ -41,7 +41,6 @@ public class Order implements Displayable {
     public String getId() { return id; }
     public void setId(String id) { this.id = id; }
 
-    public int getNumber() { return number; }
     public void setNumber(int number) { this.number = number; }
 
     public String getDisplayId() { return "#" + number; }
@@ -56,7 +55,6 @@ public class Order implements Displayable {
     public void setRestaurant(Restaurant restaurant) { this.restaurant = restaurant; }
 
     public Address getDeliveryAddress() { return deliveryAddress; }
-    public void setDeliveryAddress(Address deliveryAddress) { this.deliveryAddress = deliveryAddress; }
 
     public Driver getDriver() { return driver; }
     public void setDriver(Driver driver) { this.driver = driver; }

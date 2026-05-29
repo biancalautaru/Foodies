@@ -182,6 +182,24 @@ public class OrderService implements IOrderService {
     }
 
     @Override
+    public void deleteOrder(Customer customer, String orderId) {
+        Order order = findOrderById(orderId);
+
+        if (!order.getCustomer().getId().equals(customer.getId()))
+            throw new InvalidOrderException("Comanda " + order.getDisplayId() + " nu aparține clientului " + customer.getName() + ".");
+
+        if (order.getStatus() != OrderStatus.DELIVERED && order.getStatus() != OrderStatus.CANCELLED)
+            throw new InvalidOrderException("Poți șterge doar comenzile livrate sau anulate. Comanda " + order.getDisplayId() + " este " + order.getStatus().getLabel() + ".");
+
+        Review review = reviewRepository.readByOrder(orderId);
+        if (review != null)
+            reviewRepository.delete(review.getId());
+
+        orderRepository.delete(orderId);
+        AuditService.getInstance().log("deleteOrder");
+    }
+
+    @Override
     public List<Order> getOrdersByCustomer(String customerId) {
         List<Order> orders = orderRepository.readByCustomer(customerId);
         for (Order order : orders)

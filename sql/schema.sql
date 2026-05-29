@@ -8,17 +8,16 @@ CREATE TABLE addresses (
 );
 
 CREATE TABLE customers (
-    id    VARCHAR PRIMARY KEY,
-    name  VARCHAR NOT NULL,
-    email VARCHAR NOT NULL,
-    phone VARCHAR NOT NULL
+    id       VARCHAR PRIMARY KEY,
+    name     VARCHAR NOT NULL,
+    email    VARCHAR NOT NULL UNIQUE,
+    password VARCHAR NOT NULL
 );
 
 CREATE TABLE drivers (
     id           VARCHAR PRIMARY KEY,
     name         VARCHAR NOT NULL,
     email        VARCHAR NOT NULL,
-    phone        VARCHAR NOT NULL,
     is_available BOOLEAN NOT NULL DEFAULT TRUE
 );
 

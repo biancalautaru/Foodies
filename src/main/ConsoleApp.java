@@ -31,7 +31,7 @@ public class ConsoleApp {
 
     public void start() {
         try {
-            DataSeeder.seed(userService, restaurantService, orderService);
+            DataSeeder.seed(userService, restaurantService, menuService, orderService);
             runInteractiveMode();
         } finally {
             scanner.close();
@@ -40,18 +40,30 @@ public class ConsoleApp {
     }
 
     public void runInteractiveMode() {
-        registerUser();
-        boolean running = true;
-        while (running) {
+        boolean exitApp = false;
+        while (!exitApp) {
+            if (!authenticate())
+                return;
+            exitApp = runUserSession();
+            currentUser = null;
+        }
+    }
+
+    private boolean runUserSession() {
+        while (true) {
             printMenu();
             switch (scanner.nextLine().trim()) {
                 case "1" -> showRestaurantSubmenu();
                 case "2" -> showOrderSubmenu();
+                case "3" -> {
+                    System.out.println("\nTe-ai deconectat. Pe curând, " + currentUser.getName() + "!\n");
+                    return false;
+                }
                 case "0" -> {
                     System.out.println("\nLa revedere, " + currentUser.getName() + "!\n");
-                    running = false;
+                    return true;
                 }
-                default -> System.out.println("Opțiune invalidă. Alege 1, 2 sau 0.\n");
+                default -> System.out.println("Opțiune invalidă. Alege 1, 2, 3 sau 0.\n");
             }
         }
     }
@@ -80,20 +92,66 @@ public class ConsoleApp {
                 case "3" -> leaveReview();
                 case "4" -> repeatOrder();
                 case "5" -> viewOrderDetails();
+                case "6" -> deleteOrder();
                 case "0" -> inSubmenu = false;
-                default  -> System.out.println("Opțiune invalidă. Alege un număr între 0 și 5.\n");
+                default  -> System.out.println("Opțiune invalidă. Alege un număr între 0 și 6.\n");
             }
         }
     }
 
-    private void registerUser() {
+    private boolean authenticate() {
+        while (currentUser == null) {
+            printAuthMenu();
+            switch (scanner.nextLine().trim()) {
+                case "1" -> login();
+                case "2" -> register();
+                case "0" -> {
+                    System.out.println("\nLa revedere!\n");
+                    return false;
+                }
+                default -> System.out.println("Opțiune invalidă. Alege 1, 2 sau 0.\n");
+            }
+        }
+        return true;
+    }
+
+    private void printAuthMenu() {
+        System.out.println("------------------------------------------");
+        System.out.println("|                 FOODIES                |");
+        System.out.println("------------------------------------------");
+        System.out.println("|  1. Conectează-te                      |");
+        System.out.println("|  2. Înregistrează-te                   |");
+        System.out.println("|  0. Ieșire                             |");
+        System.out.println("------------------------------------------");
+        System.out.print("Opțiune selectată: ");
+    }
+
+    private void login() {
+        System.out.print("Email: ");
+        String email = scanner.nextLine().trim();
+        System.out.print("Parolă: ");
+        String password = scanner.nextLine().trim();
+        Customer customer = userService.login(email, password);
+        if (customer == null) {
+            System.out.println("\nEmail sau parolă incorecte. Încearcă din nou.\n");
+            return;
+        }
+        currentUser = customer;
+        System.out.println("\nBun venit înapoi, " + currentUser.getName() + "!\n");
+    }
+
+    private void register() {
         System.out.print("Nume: ");
         String name = scanner.nextLine().trim();
         System.out.print("Email: ");
         String email = scanner.nextLine().trim();
-        System.out.print("Telefon: ");
-        String phone = scanner.nextLine().trim();
-        currentUser = new Customer("U" + System.currentTimeMillis(), name, email, phone);
+        if (userService.findCustomerByEmail(email) != null) {
+            System.out.println("\nExistă deja un cont cu acest email. Conectează-te.\n");
+            return;
+        }
+        System.out.print("Parolă: ");
+        String password = scanner.nextLine().trim();
+        currentUser = new Customer("U" + System.currentTimeMillis(), name, email, password);
         userService.addCustomer(currentUser);
         System.out.println("\nCont creat cu succes. Bun venit, " + name + "!\n");
     }
@@ -104,6 +162,7 @@ public class ConsoleApp {
         System.out.println("------------------------------------------");
         System.out.println("|  1. Restaurante                        |");
         System.out.println("|  2. Comenzi                            |");
+        System.out.println("|  3. Deconectare                        |");
         System.out.println("|  0. Ieșire                             |");
         System.out.println("------------------------------------------");
         System.out.print("Opțiune selectată: ");
@@ -115,7 +174,7 @@ public class ConsoleApp {
         System.out.println("------------------------------------------");
         System.out.println("|  1. Vezi toate restaurantele           |");
         System.out.println("|  2. Explorează meniu restaurant        |");
-        System.out.println("|  3. Recenzii restaurant                |");
+        System.out.println("|  3. Vezi recenzii restaurant           |");
         System.out.println("|  0. Înapoi                             |");
         System.out.println("------------------------------------------");
         System.out.print("Opțiune selectată: ");
@@ -130,6 +189,7 @@ public class ConsoleApp {
         System.out.println("|  3. Lasă recenzie                      |");
         System.out.println("|  4. Repetă o comandă anterioară        |");
         System.out.println("|  5. Detalii comandă                    |");
+        System.out.println("|  6. Șterge o comandă                   |");
         System.out.println("|  0. Înapoi                             |");
         System.out.println("------------------------------------------");
         System.out.print("Opțiune selectată: ");
@@ -137,7 +197,7 @@ public class ConsoleApp {
 
     private void showRestaurants() {
         System.out.println("\nAfișează restaurantele în ordine:");
-        System.out.println("  1. După rating (implicit)");
+        System.out.println("  1. După rating");
         System.out.println("  2. Alfabetică");
         System.out.print("Alegere: ");
         String sortChoice = scanner.nextLine().trim();
@@ -159,8 +219,8 @@ public class ConsoleApp {
     private void exploreMenu() {
         Restaurant chosen = pickRestaurant();
         if (chosen == null) return;
-        System.out.println("\n===== MENIU (cele mai ieftine primele): " + chosen.getName() + " =====");
-        printMenuItems(menuService.getMenuSortedByPrice(chosen.getId()));
+        System.out.println("\n===== MENIU: " + chosen.getName() + " =====");
+        printMenuItems(menuService.getMenu(chosen.getId()));
         System.out.println("==========================\n");
     }
 
@@ -168,7 +228,7 @@ public class ConsoleApp {
         Restaurant restaurant = pickRestaurant();
         if (restaurant == null) return;
 
-        List<MenuItem> menu = menuService.getMenuSortedByPrice(restaurant.getId());
+        List<MenuItem> menu = menuService.getMenu(restaurant.getId());
         System.out.println("\nMeniu " + restaurant.getName() + ":");
         printMenuItems(menu);
         System.out.print("Alege produse (ex: 1,3): ");
@@ -284,6 +344,35 @@ public class ConsoleApp {
         if (selected.getReview() != null)
             System.out.println("Recenzia ta: " + selected.getReview().getRating() + "/5 — " + selected.getReview().getComment());
         System.out.println("==========================================\n");
+    }
+
+    private void deleteOrder() {
+        List<Order> deletable = new ArrayList<>();
+        for (Order o : orderService.getOrdersByCustomer(currentUser.getId()))
+            if (o.getStatus() == OrderStatus.DELIVERED || o.getStatus() == OrderStatus.CANCELLED)
+                deletable.add(o);
+        if (deletable.isEmpty()) { System.out.println("\nNu ai comenzi livrate sau anulate de șters.\n"); return; }
+
+        System.out.println("\nComenzi care pot fi șterse:");
+        for (int i = 0; i < deletable.size(); i++) {
+            Order o = deletable.get(i);
+            System.out.println("  " + (i + 1) + ". " + o.getDisplayId() + " — " +
+                    o.getRestaurant().getName() + " (" + o.getStatus().getLabel() + ")");
+        }
+        System.out.print("Alege comanda de șters: ");
+        int choice = readInt();
+        if (choice < 1 || choice > deletable.size()) { System.out.println("Opțiune invalidă.\n"); return; }
+        Order selected = deletable.get(choice - 1);
+
+        System.out.print("Sigur dorești să ștergi comanda " + selected.getDisplayId() + "? (da/nu): ");
+        if (!scanner.nextLine().trim().equalsIgnoreCase("da")) { System.out.println("Ștergere anulată.\n"); return; }
+
+        try {
+            orderService.deleteOrder(currentUser, selected.getId());
+            System.out.println("Comanda " + selected.getDisplayId() + " a fost ștearsă.\n");
+        } catch (FoodiesException e) {
+            System.out.println("Eroare: " + e.getMessage() + "\n");
+        }
     }
 
     private void browseRestaurantReviews() {

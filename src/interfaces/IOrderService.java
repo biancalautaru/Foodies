@@ -15,6 +15,7 @@ public interface IOrderService {
     void pickupOrder(String orderId);
     void deliverOrder(String orderId);
     void submitReview(String orderId, int rating, String comment);
+    void deleteOrder(Customer customer, String orderId);
     List<Order> getOrdersByCustomer(String customerId);
     Order getOrderById(String orderId);
 }

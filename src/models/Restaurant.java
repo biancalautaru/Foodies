@@ -58,14 +58,6 @@ public class Restaurant implements Comparable<Restaurant>, Reviewable, Displayab
     public List<Review> getReviews() { return Collections.unmodifiableList(reviews); }
     public void setReviews(List<Review> reviews) { this.reviews = reviews; }
 
-    public void addMenuItem(MenuItem menuItem) {
-        menu.add(menuItem);
-        menuItem.setRestaurant(this);
-    }
-
-    @Override
-    public void addReview(Review review) { reviews.add(review); }
-
     @Override
     public int getReviewCount() { return reviews.size(); }
 
