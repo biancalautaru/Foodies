@@ -1,107 +1,93 @@
 # Foodies 🍔
 
-Aplicație de tip food-delivery în Java, accesibilă din consolă. Clientul își face cont, explorează restaurantele și meniurile, plasează comenzi, urmărește fluxul de livrare și lasă recenzii. Datele sunt persistate într-o bază PostgreSQL prin JDBC, iar acțiunile importante sunt scrise într-un fișier de audit.
+Foodies este o aplicație Java de tip food delivery, rulată din consolă. Aplicația folosește PostgreSQL prin JDBC pentru persistența datelor și scrie acțiunile importante într-un fișier de audit.
 
-## 📋 Cuprins
+## Funcționalități 📖
 
-- [✨ Funcționalități](#-funcționalități)
-- [📁 Structura proiectului](#-structura-proiectului)
-- [🧩 Clasele](#-clasele)
-- [🗄️ Baza de date](#-baza-de-date)
-- [▶️ Cum se rulează](#-cum-se-rulează)
+- autentificare și înregistrare pentru clienți
+- listarea restaurantelor după rating sau alfabetic
+- afișarea meniului unui restaurant
+- vizualizarea recenziilor pentru restaurante
+- plasarea unei comenzi cu produse din meniul unui restaurant
+- simularea fluxului comenzii: confirmare, pregătire, atribuire curier, ridicare și livrare
+- anularea unei comenzi de către restaurant
+- afișarea istoricului de comenzi al clientului
+- afișarea detaliilor unei comenzi: produse, subtotal, taxă de livrare și total
+- repetarea unei comenzi livrate anterior
+- adăugarea unei recenzii pentru o comandă livrată
+- ștergerea comenzilor livrate sau anulate
 
-## ✨ Funcționalități
+## Structura proiectului 🗃️
 
-1. 👤 Creare cont client la pornire.
-2. 🏪 Listarea restaurantelor sortate alfabetic sau după rating.
-3. 📖 Vizualizarea meniului unui restaurant sortat după preț sau alfabetic.
-4. ⭐ Răsfoirea recenziilor publice ale unui restaurant.
-5. 🛒 Plasarea unei comenzi noi cu produse din coș și adresă de livrare.
-6. ✅ Confirmarea comenzii de către restaurant.
-7. ❌ Anularea comenzii cât timp este în așteptare.
-8. 🍳 Marcarea comenzii ca gata + asignarea automată a unui curier disponibil.
-9. 🛵 Ridicarea și livrarea comenzii.
-10. 📝 Trimiterea unei recenzii (1–5 stele) pentru o comandă livrată.
-11. 📜 Vizualizarea istoricului propriu de comenzi.
-12. 🔍 Vizualizarea detaliilor unei comenzi (produse, subtotal, taxă, total).
-13. 🔁 Re-plasarea unei comenzi livrate anterior la o adresă nouă.
-
-## 📁 Structura proiectului
-
-```
+```text
 Foodies/
-├── db.properties            🔑 Credențialele DB (din db.example.properties)
-├── sql/schema.sql           🗄️ Script PostgreSQL
-├── logs/audit.csv           📝 Generat la rulare
-└── src/
-    ├── config/              🔌 DatabaseConfiguration (singleton)
-    ├── exceptions/          🚨 Excepții custom
-    ├── interfaces/          🧾 Interfețe servicii + Displayable, Reviewable
-    ├── models/              🧩 Address, User, Customer, Driver, Restaurant,
-    │                           MenuItem, Order, OrderStatus, Review, Cart
-    ├── repository/          🧰 GenericRepository + repo-uri JDBC
-    ├── service/             🧠 UserService, RestaurantService, MenuService,
-    │                           OrderService, AuditService
-    └── main/                ▶️ Main, ConsoleApp, DataSeeder
++-- db.example.properties
++-- sql/
+|   +-- schema.sql
++-- logs/
+|   +-- audit.csv
++-- src/
+    +-- config/
+    +-- exceptions/
+    +-- interfaces/
+    +-- main/
+    +-- models/
+    +-- repository/
+    +-- service/
 ```
 
-## 🧩 Clasele
+Clasele principale sunt grupate astfel:
 
-| Clasă | Rol |
-|---|---|
-| `User` (abstractă) | 👤 Bază pentru utilizatori (date de contact). |
-| `Customer extends User` | 🧑 Client cu coș (`Cart`). |
-| `Driver extends User` | 🛵 Curier, marcat disponibil/indisponibil. |
-| `Restaurant` | 🏪 Restaurant cu meniu și recenzii. |
-| `MenuItem` | 🍕 Produs din meniu (nume, descriere, preț). |
-| `Order` | 📦 Comandă cu produse, status, curier, recenzie, total. |
-| `OrderStatus` (enum) | 🚦 `PENDING → PREPARING → READY_FOR_PICKUP → OUT_FOR_DELIVERY → DELIVERED` (+ `CANCELLED`). |
-| `Review` | ⭐ Recenzie (1–5 stele + comentariu) legată de o comandă. |
-| `Cart` | 🛒 Coșul clientului (produse dintr-un singur restaurant). |
-| `Address` | 📍 Adresă (stradă, număr, oraș). |
+- `models`: entitățile aplicației, precum `Customer`, `Driver`, `Restaurant`, `MenuItem`, `Order`, `Review`, `Cart` și `Address`
+- `repository`: accesul la baza de date pentru clienți, curieri, restaurante, produse, comenzi și recenzii
+- `service`: logica aplicației pentru utilizatori, restaurante, comenzi și audit
+- `main`: pornirea aplicației, meniul din consolă și popularea inițială a bazei de date
 
-## 🗄️ Baza de date
+## Baza de date 🗄️
 
-Schema este în `sql/schema.sql` și conține tabelele: `addresses`, `customers`, `drivers`, `restaurants`, `menu_items`, `orders`, `order_items`, `reviews`.
+Schema PostgreSQL se află în `sql/schema.sql` și definește tabelele:
+`addresses`, `customers`, `drivers`, `restaurants`, `menu_items`, `orders`, `order_items`, `reviews`
 
-Înainte de prima rulare:
-
+Înainte de rulare, creează baza de date și aplică schema:
 ```bash
 createdb foodies
 psql -d foodies -f sql/schema.sql
 ```
 
-Apoi se copiază `db.example.properties` în `db.properties` și se completează credențialele:
-
+Copiază `db.example.properties` în `db.properties` și completează datele de conectare:
 ```properties
 db.url=jdbc:postgresql://localhost:5432/foodies
-db.user=postgres
-db.password=parola_ta
+db.user=user
+db.password=parola
 ```
 
-🌱 La prima rulare, dacă baza e goală, `DataSeeder` o populează cu 3 clienți, 3 curieri, 5 restaurante, ~25 de produse și câteva comenzi (inclusiv livrate cu recenzii).
+Daca baza este goala, `DataSeeder` adauga date initiale pentru testare.
 
-## ▶️ Cum se rulează
+## Rulare 💻
 
-### Cerințe prealabile
+Cerintele proiectului:
+- JDK 17 sau mai nou
+- PostgreSQL
+- driverul JDBC PostgreSQL adăugat în classpath
 
-- ☕ JDK 17 sau mai nou
-- 🐘 PostgreSQL 13+
-- 📦 Driver `postgresql-42.7.x.jar`
+Clasa de pornire este `main.Main`.
 
-### 🧠 În IntelliJ IDEA
+### IntelliJ IDEA
 
-1. `File → Open` și alege folderul `Foodies`.
-2. Adaugă `postgresql-42.7.x.jar` la `Project Structure → Libraries` (dacă nu este deja).
-3. Copiază `db.example.properties` → `db.properties` și completează credențialele.
-4. Rulează `sql/schema.sql` pe baza de date.
-5. Rulează clasa `main.Main`.
+1. Deschide folderul proiectului `Foodies` în IntelliJ IDEA.
+2. Setează un SDK Java 17 sau mai nou din `File > Project Structure > Project SDK`.
+3. Adaugă driverul PostgreSQL JDBC în proiect din `File > Project Structure > Libraries > + > Java`, apoi selectează fișierul `postgresql-42.7.x.jar`.
+4. Creează baza de date PostgreSQL și rulează scriptul `sql/schema.sql`.
+5. Copiază `db.example.properties` în `db.properties` și completează `db.url`, `db.user` si `db.password`.
+6. Rulează clasa `main.Main`.
 
-### 💻 Din linia de comandă
+### Linie de comandă
+
+Exemplu din PowerShell:
 
 ```powershell
-javac -d out -cp "cale\spre\postgresql-42.7.11.jar" (Get-ChildItem -Recurse src -Filter *.java).FullName
-java  -cp "out;cale\spre\postgresql-42.7.11.jar" main.Main
+javac -d out -cp "cale\spre\postgresql-42.7.x.jar" (Get-ChildItem -Recurse src -Filter *.java).FullName
+java -cp "out;cale\spre\postgresql-42.7.x.jar" main.Main
 ```
 
-Pe Linux/macOS separatorul de classpath este `:` în loc de `;`.
+Pe Linux/macOS, separatorul pentru classpath este `:` in loc de `;`.

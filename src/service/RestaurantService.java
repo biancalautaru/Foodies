@@ -1,7 +1,6 @@
 package service;
 
 import exceptions.EntityNotFoundException;
-import interfaces.IRestaurantService;
 import models.MenuItem;
 import models.Restaurant;
 import repository.MenuItemRepository;
@@ -13,20 +12,17 @@ import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
 
-public class RestaurantService implements IRestaurantService {
+public class RestaurantService {
     private final RestaurantRepository restaurantRepository;
     private final MenuItemRepository menuItemRepository;
     private final ReviewRepository reviewRepository;
 
-    public RestaurantService(RestaurantRepository restaurantRepository,
-                             MenuItemRepository menuItemRepository,
-                             ReviewRepository reviewRepository) {
-        this.restaurantRepository = restaurantRepository;
-        this.menuItemRepository = menuItemRepository;
-        this.reviewRepository = reviewRepository;
+    public RestaurantService() {
+        this.restaurantRepository = RestaurantRepository.getInstance();
+        this.menuItemRepository = MenuItemRepository.getInstance();
+        this.reviewRepository = ReviewRepository.getInstance();
     }
 
-    @Override
     public void addRestaurant(Restaurant restaurant) {
         if (restaurant.getAddress().getId() == null)
             restaurant.getAddress().setId(UUID.randomUUID().toString());
@@ -34,7 +30,6 @@ public class RestaurantService implements IRestaurantService {
         AuditService.getInstance().log("addRestaurant");
     }
 
-    @Override
     public void addMenuItemToRestaurant(String restaurantId, MenuItem item) {
         Restaurant restaurant = findRestaurantById(restaurantId);
         item.setRestaurant(restaurant);
@@ -42,14 +37,19 @@ public class RestaurantService implements IRestaurantService {
         AuditService.getInstance().log("addMenuItemToRestaurant");
     }
 
-    @Override
+    public List<MenuItem> getMenu(String restaurantId) {
+        Restaurant restaurant = findRestaurantById(restaurantId);
+        List<MenuItem> items = menuItemRepository.readByRestaurant(restaurantId);
+        items.forEach(item -> item.setRestaurant(restaurant));
+        return items;
+    }
+
     public List<Restaurant> getRestaurantsSortedByName() {
         List<Restaurant> sorted = loadAllWithReviews();
         Collections.sort(sorted);
         return sorted;
     }
 
-    @Override
     public List<Restaurant> getRestaurantsSortedByRating() {
         List<Restaurant> sorted = loadAllWithReviews();
         sorted.sort(Restaurant.BY_RATING);
@@ -63,7 +63,6 @@ public class RestaurantService implements IRestaurantService {
         return restaurants;
     }
 
-    @Override
     public Restaurant findRestaurantById(String id) {
         Restaurant restaurant = restaurantRepository.read(id);
         if (restaurant == null)

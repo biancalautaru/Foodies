@@ -1,16 +1,14 @@
 package repository;
 
-import config.DatabaseConfiguration;
 import models.Driver;
 
-import java.sql.Connection;
-import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.util.ArrayList;
 import java.util.List;
 
-public class DriverRepository implements GenericRepository<Driver, String> {
+public class DriverRepository extends AbstractRepository<Driver, String> {
+    private static final DriverRepository INSTANCE = new DriverRepository();
+
     private static final String SQL_INSERT =
             "INSERT INTO drivers (id, name, email, is_available) VALUES (?, ?, ?, ?)";
 
@@ -32,98 +30,48 @@ public class DriverRepository implements GenericRepository<Driver, String> {
     private static final String SQL_DELETE =
             "DELETE FROM drivers WHERE id = ?";
 
-    private final Connection connection;
+    private DriverRepository() {}
 
-    public DriverRepository() {
-        this.connection = DatabaseConfiguration.getInstance().getConnection();
+    public static DriverRepository getInstance() {
+        return INSTANCE;
+    }
+
+    @Override
+    protected String repositoryName() {
+        return "DriverRepository";
     }
 
     @Override
     public void create(Driver driver) {
-        try (PreparedStatement stmt = connection.prepareStatement(SQL_INSERT)) {
-            stmt.setString(1, driver.getId());
-            stmt.setString(2, driver.getName());
-            stmt.setString(3, driver.getEmail());
-            stmt.setBoolean(4, driver.isAvailable());
-            stmt.executeUpdate();
-        } catch (SQLException e) {
-            throw new RuntimeException("DriverRepository: create failed for id=" + driver.getId(), e);
-        }
+        executeWrite(SQL_INSERT, driver.getId(), driver.getName(), driver.getEmail(), driver.isAvailable());
     }
 
     @Override
     public Driver read(String id) {
-        try (PreparedStatement stmt = connection.prepareStatement(SQL_SELECT_BY_ID)) {
-            stmt.setString(1, id);
-            try (ResultSet rs = stmt.executeQuery()) {
-                if (rs.next()) {
-                    return mapRow(rs);
-                }
-            }
-        } catch (SQLException e) {
-            throw new RuntimeException("DriverRepository: read failed for id=" + id, e);
-        }
-        return null;
+        return queryOne(SQL_SELECT_BY_ID, this::mapRow, id);
     }
 
     @Override
     public List<Driver> readAll() {
-        List<Driver> result = new ArrayList<>();
-        try (PreparedStatement stmt = connection.prepareStatement(SQL_SELECT_ALL);
-             ResultSet rs = stmt.executeQuery()) {
-            while (rs.next()) {
-                result.add(mapRow(rs));
-            }
-        } catch (SQLException e) {
-            throw new RuntimeException("DriverRepository: readAll failed", e);
-        }
-        return result;
+        return queryList(SQL_SELECT_ALL, this::mapRow);
     }
 
     public Driver findAvailable() {
-        try (PreparedStatement stmt = connection.prepareStatement(SQL_SELECT_AVAILABLE);
-             ResultSet rs = stmt.executeQuery()) {
-            if (rs.next()) {
-                return mapRow(rs);
-            }
-        } catch (SQLException e) {
-            throw new RuntimeException("DriverRepository: findAvailable failed", e);
-        }
-        return null;
+        return queryOne(SQL_SELECT_AVAILABLE, this::mapRow);
     }
 
     @Override
     public void update(Driver driver) {
-        try (PreparedStatement stmt = connection.prepareStatement(SQL_UPDATE)) {
-            stmt.setString(1, driver.getName());
-            stmt.setString(2, driver.getEmail());
-            stmt.setBoolean(3, driver.isAvailable());
-            stmt.setString(4, driver.getId());
-            stmt.executeUpdate();
-        } catch (SQLException e) {
-            throw new RuntimeException("DriverRepository: update failed for id=" + driver.getId(), e);
-        }
+        executeWrite(SQL_UPDATE, driver.getName(), driver.getEmail(), driver.isAvailable(), driver.getId());
     }
 
     public void updateAvailability(String driverId, boolean available) {
-        try (PreparedStatement stmt = connection.prepareStatement(SQL_UPDATE_AVAILABILITY)) {
-            stmt.setBoolean(1, available);
-            stmt.setString(2, driverId);
-            stmt.executeUpdate();
-        } catch (SQLException e) {
-            throw new RuntimeException(
-                    "DriverRepository: updateAvailability failed for id=" + driverId, e);
-        }
+        executeWrite(SQL_UPDATE_AVAILABILITY, available, driverId);
     }
 
     @Override
     public void delete(String id) {
-        try (PreparedStatement stmt = connection.prepareStatement(SQL_DELETE)) {
-            stmt.setString(1, id);
-            stmt.executeUpdate();
-        } catch (SQLException e) {
-            throw new RuntimeException("DriverRepository: delete failed for id=" + id, e);
-        }
+        executeWrite(SQL_DELETE, id);
     }
 
     private Driver mapRow(ResultSet rs) throws SQLException {

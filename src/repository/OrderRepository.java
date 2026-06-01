@@ -1,6 +1,6 @@
 package repository;
 
-import config.DatabaseConfiguration;
+import exceptions.RepositoryException;
 import models.Customer;
 import models.Driver;
 import models.MenuItem;
@@ -8,15 +8,15 @@ import models.Order;
 import models.OrderStatus;
 import models.Restaurant;
 
-import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Timestamp;
-import java.util.ArrayList;
 import java.util.List;
 
-public class OrderRepository implements GenericRepository<Order, String> {
+public class OrderRepository extends AbstractRepository<Order, String> {
+    private static final OrderRepository INSTANCE = new OrderRepository();
+
     private static final String SQL_INSERT_ADDRESS =
             "INSERT INTO addresses (id, street, number, city) VALUES (?, ?, ?, ?)" +
             " ON CONFLICT (id) DO NOTHING";
@@ -63,23 +63,27 @@ public class OrderRepository implements GenericRepository<Order, String> {
     private static final String SQL_DELETE =
             "DELETE FROM orders WHERE id = ?";
 
-    private final Connection connection;
+    private OrderRepository() {}
 
-    public OrderRepository() {
-        this.connection = DatabaseConfiguration.getInstance().getConnection();
+    public static OrderRepository getInstance() {
+        return INSTANCE;
+    }
+
+    @Override
+    protected String repositoryName() {
+        return "OrderRepository";
     }
 
     @Override
     public void create(Order order) {
         try {
-            try (PreparedStatement stmt = connection.prepareStatement(SQL_INSERT_ADDRESS)) {
-                stmt.setString(1, order.getDeliveryAddress().getId());
-                stmt.setString(2, order.getDeliveryAddress().getStreet());
-                stmt.setString(3, order.getDeliveryAddress().getNumber());
-                stmt.setString(4, order.getDeliveryAddress().getCity());
-                stmt.executeUpdate();
-            }
-            try (PreparedStatement stmt = connection.prepareStatement(SQL_INSERT)) {
+            executeWrite(SQL_INSERT_ADDRESS,
+                    order.getDeliveryAddress().getId(),
+                    order.getDeliveryAddress().getStreet(),
+                    order.getDeliveryAddress().getNumber(),
+                    order.getDeliveryAddress().getCity());
+
+            try (PreparedStatement stmt = prepareStatement(SQL_INSERT)) {
                 stmt.setString(1, order.getId());
                 stmt.setTimestamp(2, Timestamp.valueOf(order.getDate()));
                 stmt.setString(3, order.getCustomer().getId());
@@ -93,7 +97,8 @@ public class OrderRepository implements GenericRepository<Order, String> {
                         order.setNumber(rs.getInt("number"));
                 }
             }
-            try (PreparedStatement stmt = connection.prepareStatement(SQL_INSERT_ORDER_ITEM)) {
+
+            try (PreparedStatement stmt = prepareStatement(SQL_INSERT_ORDER_ITEM)) {
                 for (MenuItem item : order.getItems()) {
                     stmt.setString(1, order.getId());
                     stmt.setString(2, item.getId());
@@ -102,71 +107,31 @@ public class OrderRepository implements GenericRepository<Order, String> {
                 stmt.executeBatch();
             }
         } catch (SQLException e) {
-            throw new RuntimeException("OrderRepository: create failed for id=" + order.getId(), e);
+            throw new RepositoryException("OrderRepository: create failed for id=" + order.getId(), e);
         }
     }
 
     @Override
     public Order read(String id) {
-        try (PreparedStatement stmt = connection.prepareStatement(SQL_SELECT_BY_ID)) {
-            stmt.setString(1, id);
-            try (ResultSet rs = stmt.executeQuery()) {
-                if (rs.next()) {
-                    return mapRow(rs);
-                }
-            }
-        } catch (SQLException e) {
-            throw new RuntimeException("OrderRepository: read failed for id=" + id, e);
-        }
-        return null;
+        return queryOne(SQL_SELECT_BY_ID, this::mapRow, id);
     }
 
     @Override
     public List<Order> readAll() {
-        List<Order> result = new ArrayList<>();
-        try (PreparedStatement stmt = connection.prepareStatement(SQL_SELECT_ALL);
-             ResultSet rs = stmt.executeQuery()) {
-            while (rs.next()) {
-                result.add(mapRow(rs));
-            }
-        } catch (SQLException e) {
-            throw new RuntimeException("OrderRepository: readAll failed", e);
-        }
-        return result;
+        return queryList(SQL_SELECT_ALL, this::mapRow);
     }
 
     public List<Order> readByCustomer(String customerId) {
-        List<Order> result = new ArrayList<>();
-        try (PreparedStatement stmt = connection.prepareStatement(SQL_SELECT_BY_CUSTOMER)) {
-            stmt.setString(1, customerId);
-            try (ResultSet rs = stmt.executeQuery()) {
-                while (rs.next()) {
-                    result.add(mapRow(rs));
-                }
-            }
-        } catch (SQLException e) {
-            throw new RuntimeException(
-                    "OrderRepository: readByCustomer failed for customerId=" + customerId, e);
-        }
-        return result;
+        return queryList(SQL_SELECT_BY_CUSTOMER, this::mapRow, customerId);
     }
 
     public List<Order> readReadyWithoutDriver() {
-        List<Order> result = new ArrayList<>();
-        try (PreparedStatement stmt = connection.prepareStatement(SQL_SELECT_READY_WITHOUT_DRIVER);
-             ResultSet rs = stmt.executeQuery()) {
-            while (rs.next()) {
-                result.add(mapRow(rs));
-            }
-        } catch (SQLException e) {
-            throw new RuntimeException("OrderRepository: readReadyWithoutDriver failed", e);
-        }
-        return result;
+        return queryList(SQL_SELECT_READY_WITHOUT_DRIVER, this::mapRow);
     }
 
     public List<MenuItem> readItemsForOrder(String orderId) {
-        List<MenuItem> result = new ArrayList<>();
-        try (PreparedStatement stmt = connection.prepareStatement(SQL_SELECT_ITEMS_BY_ORDER)) {
+        List<MenuItem> result = new java.util.ArrayList<>();
+        try (PreparedStatement stmt = prepareStatement(SQL_SELECT_ITEMS_BY_ORDER)) {
             stmt.setString(1, orderId);
             try (ResultSet rs = stmt.executeQuery()) {
                 while (rs.next()) {
@@ -187,39 +152,23 @@ public class OrderRepository implements GenericRepository<Order, String> {
                 }
             }
         } catch (SQLException e) {
-            throw new RuntimeException(
-                    "OrderRepository: readItemsForOrder failed for orderId=" + orderId, e);
+            throw new RepositoryException("OrderRepository: readItemsForOrder failed for orderId=" + orderId, e);
         }
         return result;
     }
 
     @Override
     public void update(Order order) {
-        try (PreparedStatement stmt = connection.prepareStatement(SQL_UPDATE)) {
-            stmt.setString(1, order.getStatus().name());
-            stmt.setTimestamp(2, Timestamp.valueOf(order.getStatusChangeDateTime()));
-            stmt.setString(3, order.getDriver() != null ? order.getDriver().getId() : null);
-            stmt.setString(4, order.getId());
-            stmt.executeUpdate();
-        } catch (SQLException e) {
-            throw new RuntimeException("OrderRepository: update failed for id=" + order.getId(), e);
-        }
+        executeWrite(SQL_UPDATE, order.getStatus().name(),
+                Timestamp.valueOf(order.getStatusChangeDateTime()),
+                order.getDriver() != null ? order.getDriver().getId() : null,
+                order.getId());
     }
 
     @Override
     public void delete(String id) {
-        try {
-            try (PreparedStatement stmt = connection.prepareStatement(SQL_DELETE_ORDER_ITEMS)) {
-                stmt.setString(1, id);
-                stmt.executeUpdate();
-            }
-            try (PreparedStatement stmt = connection.prepareStatement(SQL_DELETE)) {
-                stmt.setString(1, id);
-                stmt.executeUpdate();
-            }
-        } catch (SQLException e) {
-            throw new RuntimeException("OrderRepository: delete failed for id=" + id, e);
-        }
+        executeWrite(SQL_DELETE_ORDER_ITEMS, id);
+        executeWrite(SQL_DELETE, id);
     }
 
     private Order mapRow(ResultSet rs) throws SQLException {

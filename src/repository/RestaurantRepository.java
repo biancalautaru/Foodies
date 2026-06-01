@@ -1,17 +1,16 @@
 package repository;
 
-import config.DatabaseConfiguration;
+import exceptions.RepositoryException;
 import models.Address;
 import models.Restaurant;
 
-import java.sql.Connection;
-import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.util.ArrayList;
 import java.util.List;
 
-public class RestaurantRepository implements GenericRepository<Restaurant, String> {
+public class RestaurantRepository extends AbstractRepository<Restaurant, String> {
+    private static final RestaurantRepository INSTANCE = new RestaurantRepository();
+
     private static final String SQL_INSERT_ADDRESS =
             "INSERT INTO addresses (id, street, number, city) VALUES (?, ?, ?, ?)" +
             " ON CONFLICT (id) DO NOTHING";
@@ -37,93 +36,52 @@ public class RestaurantRepository implements GenericRepository<Restaurant, Strin
     private static final String SQL_DELETE =
             "DELETE FROM restaurants WHERE id = ?";
 
-    private final Connection connection;
+    private RestaurantRepository() {}
 
-    public RestaurantRepository() {
-        this.connection = DatabaseConfiguration.getInstance().getConnection();
+    public static RestaurantRepository getInstance() {
+        return INSTANCE;
+    }
+
+    @Override
+    protected String repositoryName() {
+        return "RestaurantRepository";
     }
 
     @Override
     public void create(Restaurant restaurant) {
         try {
             Address addr = restaurant.getAddress();
-            try (PreparedStatement stmt = connection.prepareStatement(SQL_INSERT_ADDRESS)) {
-                stmt.setString(1, addr.getId());
-                stmt.setString(2, addr.getStreet());
-                stmt.setString(3, addr.getNumber());
-                stmt.setString(4, addr.getCity());
-                stmt.executeUpdate();
-            }
-            try (PreparedStatement stmt = connection.prepareStatement(SQL_INSERT)) {
-                stmt.setString(1, restaurant.getId());
-                stmt.setString(2, restaurant.getName());
-                stmt.setString(3, addr.getId());
-                stmt.executeUpdate();
-            }
-        } catch (SQLException e) {
-            throw new RuntimeException("RestaurantRepository: create failed for id=" + restaurant.getId(), e);
+            executeWrite(SQL_INSERT_ADDRESS, addr.getId(), addr.getStreet(), addr.getNumber(), addr.getCity());
+            executeWrite(SQL_INSERT, restaurant.getId(), restaurant.getName(), addr.getId());
+        } catch (RepositoryException e) {
+            throw new RepositoryException("RestaurantRepository: create failed for id=" + restaurant.getId(), e);
         }
     }
 
     @Override
     public Restaurant read(String id) {
-        try (PreparedStatement stmt = connection.prepareStatement(SQL_SELECT_BY_ID)) {
-            stmt.setString(1, id);
-            try (ResultSet rs = stmt.executeQuery()) {
-                if (rs.next()) {
-                    return mapRow(rs);
-                }
-            }
-        } catch (SQLException e) {
-            throw new RuntimeException("RestaurantRepository: read failed for id=" + id, e);
-        }
-        return null;
+        return queryOne(SQL_SELECT_BY_ID, this::mapRow, id);
     }
 
     @Override
     public List<Restaurant> readAll() {
-        List<Restaurant> result = new ArrayList<>();
-        try (PreparedStatement stmt = connection.prepareStatement(SQL_SELECT_ALL);
-             ResultSet rs = stmt.executeQuery()) {
-            while (rs.next()) {
-                result.add(mapRow(rs));
-            }
-        } catch (SQLException e) {
-            throw new RuntimeException("RestaurantRepository: readAll failed", e);
-        }
-        return result;
+        return queryList(SQL_SELECT_ALL, this::mapRow);
     }
 
     @Override
     public void update(Restaurant restaurant) {
         try {
             Address addr = restaurant.getAddress();
-            try (PreparedStatement stmt = connection.prepareStatement(SQL_UPDATE_ADDRESS)) {
-                stmt.setString(1, addr.getStreet());
-                stmt.setString(2, addr.getNumber());
-                stmt.setString(3, addr.getCity());
-                stmt.setString(4, addr.getId());
-                stmt.executeUpdate();
-            }
-            try (PreparedStatement stmt = connection.prepareStatement(SQL_UPDATE)) {
-                stmt.setString(1, restaurant.getName());
-                stmt.setString(2, addr.getId());
-                stmt.setString(3, restaurant.getId());
-                stmt.executeUpdate();
-            }
-        } catch (SQLException e) {
-            throw new RuntimeException("RestaurantRepository: update failed for id=" + restaurant.getId(), e);
+            executeWrite(SQL_UPDATE_ADDRESS, addr.getStreet(), addr.getNumber(), addr.getCity(), addr.getId());
+            executeWrite(SQL_UPDATE, restaurant.getName(), addr.getId(), restaurant.getId());
+        } catch (RepositoryException e) {
+            throw new RepositoryException("RestaurantRepository: update failed for id=" + restaurant.getId(), e);
         }
     }
 
     @Override
     public void delete(String id) {
-        try (PreparedStatement stmt = connection.prepareStatement(SQL_DELETE)) {
-            stmt.setString(1, id);
-            stmt.executeUpdate();
-        } catch (SQLException e) {
-            throw new RuntimeException("RestaurantRepository: delete failed for id=" + id, e);
-        }
+        executeWrite(SQL_DELETE, id);
     }
 
     private Restaurant mapRow(ResultSet rs) throws SQLException {

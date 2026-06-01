@@ -1,18 +1,16 @@
 package repository;
 
-import config.DatabaseConfiguration;
 import models.Customer;
 import models.Review;
 
-import java.sql.Connection;
-import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Timestamp;
-import java.util.ArrayList;
 import java.util.List;
 
-public class ReviewRepository implements GenericRepository<Review, String> {
+public class ReviewRepository extends AbstractRepository<Review, String> {
+    private static final ReviewRepository INSTANCE = new ReviewRepository();
+
     private static final String SQL_INSERT =
             "INSERT INTO reviews (id, customer_id, order_id, rating, comment, date)" +
             " VALUES (?, ?, ?, ?, ?, ?)";
@@ -47,107 +45,49 @@ public class ReviewRepository implements GenericRepository<Review, String> {
     private static final String SQL_DELETE =
             "DELETE FROM reviews WHERE id = ?";
 
-    private final Connection connection;
+    private ReviewRepository() {}
 
-    public ReviewRepository() {
-        this.connection = DatabaseConfiguration.getInstance().getConnection();
+    public static ReviewRepository getInstance() {
+        return INSTANCE;
+    }
+
+    @Override
+    protected String repositoryName() {
+        return "ReviewRepository";
     }
 
     @Override
     public void create(Review review) {
-        try (PreparedStatement stmt = connection.prepareStatement(SQL_INSERT)) {
-            stmt.setString(1, review.getId());
-            stmt.setString(2, review.getCustomer().getId());
-            stmt.setString(3, review.getOrderId());
-            stmt.setInt(4, review.getRating());
-            stmt.setString(5, review.getComment());
-            stmt.setTimestamp(6, Timestamp.valueOf(review.getDate()));
-            stmt.executeUpdate();
-        } catch (SQLException e) {
-            throw new RuntimeException("ReviewRepository: create failed for id=" + review.getId(), e);
-        }
+        executeWrite(SQL_INSERT, review.getId(), review.getCustomer().getId(), review.getOrderId(),
+                review.getRating(), review.getComment(), Timestamp.valueOf(review.getDate()));
     }
 
     @Override
     public Review read(String id) {
-        try (PreparedStatement stmt = connection.prepareStatement(SQL_SELECT_BY_ID)) {
-            stmt.setString(1, id);
-            try (ResultSet rs = stmt.executeQuery()) {
-                if (rs.next()) {
-                    return mapRow(rs);
-                }
-            }
-        } catch (SQLException e) {
-            throw new RuntimeException("ReviewRepository: read failed for id=" + id, e);
-        }
-        return null;
+        return queryOne(SQL_SELECT_BY_ID, this::mapRow, id);
     }
 
     @Override
     public List<Review> readAll() {
-        List<Review> result = new ArrayList<>();
-        try (PreparedStatement stmt = connection.prepareStatement(SQL_SELECT_ALL);
-             ResultSet rs = stmt.executeQuery()) {
-            while (rs.next()) {
-                result.add(mapRow(rs));
-            }
-        } catch (SQLException e) {
-            throw new RuntimeException("ReviewRepository: readAll failed", e);
-        }
-        return result;
+        return queryList(SQL_SELECT_ALL, this::mapRow);
     }
 
     public Review readByOrder(String orderId) {
-        try (PreparedStatement stmt = connection.prepareStatement(SQL_SELECT_BY_ORDER)) {
-            stmt.setString(1, orderId);
-            try (ResultSet rs = stmt.executeQuery()) {
-                if (rs.next()) {
-                    return mapRow(rs);
-                }
-            }
-        } catch (SQLException e) {
-            throw new RuntimeException(
-                    "ReviewRepository: readByOrder failed for orderId=" + orderId, e);
-        }
-        return null;
+        return queryOne(SQL_SELECT_BY_ORDER, this::mapRow, orderId);
     }
 
     public List<Review> readByRestaurant(String restaurantId) {
-        List<Review> result = new ArrayList<>();
-        try (PreparedStatement stmt = connection.prepareStatement(SQL_SELECT_BY_RESTAURANT)) {
-            stmt.setString(1, restaurantId);
-            try (ResultSet rs = stmt.executeQuery()) {
-                while (rs.next()) {
-                    result.add(mapRow(rs));
-                }
-            }
-        } catch (SQLException e) {
-            throw new RuntimeException(
-                    "ReviewRepository: readByRestaurant failed for restaurantId=" + restaurantId, e);
-        }
-        return result;
+        return queryList(SQL_SELECT_BY_RESTAURANT, this::mapRow, restaurantId);
     }
 
     @Override
     public void update(Review review) {
-        try (PreparedStatement stmt = connection.prepareStatement(SQL_UPDATE)) {
-            stmt.setInt(1, review.getRating());
-            stmt.setString(2, review.getComment());
-            stmt.setString(3, review.getId());
-            stmt.executeUpdate();
-        } catch (SQLException e) {
-            throw new RuntimeException("ReviewRepository: update failed for id=" + review.getId(), e);
-        }
+        executeWrite(SQL_UPDATE, review.getRating(), review.getComment(), review.getId());
     }
 
     @Override
     public void delete(String id) {
-        try (PreparedStatement stmt = connection.prepareStatement(SQL_DELETE)) {
-            stmt.setString(1, id);
-            stmt.executeUpdate();
-        } catch (SQLException e) {
-            throw new RuntimeException("ReviewRepository: delete failed for id=" + id, e);
-        }
+        executeWrite(SQL_DELETE, id);
     }
 
     private Review mapRow(ResultSet rs) throws SQLException {

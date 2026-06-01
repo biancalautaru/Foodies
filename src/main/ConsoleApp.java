@@ -2,11 +2,10 @@ package main;
 
 import config.DatabaseConfiguration;
 import exceptions.FoodiesException;
-import interfaces.IMenuService;
-import interfaces.IOrderService;
-import interfaces.IRestaurantService;
-import interfaces.IUserService;
 import models.*;
+import service.OrderService;
+import service.RestaurantService;
+import service.UserService;
 
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
@@ -14,24 +13,24 @@ import java.util.List;
 import java.util.Scanner;
 
 public class ConsoleApp {
-    private final IUserService userService;
-    private final IRestaurantService restaurantService;
-    private final IMenuService menuService;
-    private final IOrderService orderService;
+    private static final int BOX_WIDTH = 50;
+
+    private final UserService userService;
+    private final RestaurantService restaurantService;
+    private final OrderService orderService;
     private final Scanner scanner;
     private Customer currentUser;
 
-    public ConsoleApp(IUserService userService, IRestaurantService restaurantService, IMenuService menuService, IOrderService orderService) {
+    public ConsoleApp(UserService userService, RestaurantService restaurantService, OrderService orderService) {
         this.userService = userService;
         this.restaurantService = restaurantService;
-        this.menuService = menuService;
         this.orderService = orderService;
         this.scanner = new Scanner(System.in);
     }
 
     public void start() {
         try {
-            DataSeeder.seed(userService, restaurantService, menuService, orderService);
+            DataSeeder.seed(userService, restaurantService, orderService);
             runInteractiveMode();
         } finally {
             scanner.close();
@@ -116,13 +115,11 @@ public class ConsoleApp {
     }
 
     private void printAuthMenu() {
-        System.out.println("------------------------------------------");
-        System.out.println("|                 FOODIES                |");
-        System.out.println("------------------------------------------");
-        System.out.println("|  1. Conectează-te                      |");
-        System.out.println("|  2. Înregistrează-te                   |");
-        System.out.println("|  0. Ieșire                             |");
-        System.out.println("------------------------------------------");
+        printBoxMenu("FOODIES", List.of(
+                "1. Conectează-te",
+                "2. Înregistrează-te",
+                "0. Ieșire"
+        ));
         System.out.print("Opțiune selectată: ");
     }
 
@@ -157,41 +154,35 @@ public class ConsoleApp {
     }
 
     private void printMenu() {
-        System.out.println("------------------------------------------");
-        System.out.println("|                 FOODIES                |");
-        System.out.println("------------------------------------------");
-        System.out.println("|  1. Restaurante                        |");
-        System.out.println("|  2. Comenzi                            |");
-        System.out.println("|  3. Deconectare                        |");
-        System.out.println("|  0. Ieșire                             |");
-        System.out.println("------------------------------------------");
+        printBoxMenu("FOODIES", List.of(
+                "1. Restaurante",
+                "2. Comenzi",
+                "3. Deconectare",
+                "0. Ieșire"
+        ));
         System.out.print("Opțiune selectată: ");
     }
 
     private void printRestaurantSubmenu() {
-        System.out.println("------------------------------------------");
-        System.out.println("|             RESTAURANTE                |");
-        System.out.println("------------------------------------------");
-        System.out.println("|  1. Vezi toate restaurantele           |");
-        System.out.println("|  2. Explorează meniu restaurant        |");
-        System.out.println("|  3. Vezi recenzii restaurant           |");
-        System.out.println("|  0. Înapoi                             |");
-        System.out.println("------------------------------------------");
+        printBoxMenu("RESTAURANTE", List.of(
+                "1. Vezi toate restaurantele",
+                "2. Explorează meniu restaurant",
+                "3. Vezi recenzii restaurant",
+                "0. Înapoi"
+        ));
         System.out.print("Opțiune selectată: ");
     }
 
     private void printOrderSubmenu() {
-        System.out.println("------------------------------------------");
-        System.out.println("|               COMENZI                  |");
-        System.out.println("------------------------------------------");
-        System.out.println("|  1. Plasează comandă nouă              |");
-        System.out.println("|  2. Comenzile mele                     |");
-        System.out.println("|  3. Lasă recenzie                      |");
-        System.out.println("|  4. Repetă o comandă anterioară        |");
-        System.out.println("|  5. Detalii comandă                    |");
-        System.out.println("|  6. Șterge o comandă                   |");
-        System.out.println("|  0. Înapoi                             |");
-        System.out.println("------------------------------------------");
+        printBoxMenu("COMENZI", List.of(
+                "1. Plasează comandă nouă",
+                "2. Comenzile mele",
+                "3. Lasă recenzie",
+                "4. Repetă o comandă anterioară",
+                "5. Detalii comandă",
+                "6. Șterge o comandă",
+                "0. Înapoi"
+        ));
         System.out.print("Opțiune selectată: ");
     }
 
@@ -202,33 +193,33 @@ public class ConsoleApp {
         System.out.print("Alegere: ");
         String sortChoice = scanner.nextLine().trim();
         if (sortChoice.equals("2")) {
-            System.out.println("\n===== RESTAURANTE (ordine alfabetică) =====");
+            int width = printTitle("RESTAURANTE (ordine alfabetică)");
             int i = 1;
             for (Restaurant r : restaurantService.getRestaurantsSortedByName())
                 System.out.println(i++ + ". " + r.toDisplayString());
-            System.out.println("==========================================\n");
+            printSectionEnd(width);
         } else {
-            System.out.println("\n===== RESTAURANTE (cele mai bine evaluate primele) =====");
+            int width = printTitle("RESTAURANTE (cele mai bine evaluate primele)");
             int i = 1;
             for (Restaurant r : restaurantService.getRestaurantsSortedByRating())
                 System.out.println(i++ + ". " + r.toDisplayString());
-            System.out.println("========================================================\n");
+            printSectionEnd(width);
         }
     }
 
     private void exploreMenu() {
         Restaurant chosen = pickRestaurant();
         if (chosen == null) return;
-        System.out.println("\n===== MENIU: " + chosen.getName() + " =====");
-        printMenuItems(menuService.getMenu(chosen.getId()));
-        System.out.println("==========================\n");
+        int width = printTitle("MENIU: " + chosen.getName());
+        printMenuItems(restaurantService.getMenu(chosen.getId()));
+        printSectionEnd(width);
     }
 
     private void placeNewOrder() {
         Restaurant restaurant = pickRestaurant();
         if (restaurant == null) return;
 
-        List<MenuItem> menu = menuService.getMenu(restaurant.getId());
+        List<MenuItem> menu = restaurantService.getMenu(restaurant.getId());
         System.out.println("\nMeniu " + restaurant.getName() + ":");
         printMenuItems(menu);
         System.out.print("Alege produse (ex: 1,3): ");
@@ -258,7 +249,7 @@ public class ConsoleApp {
     private void showMyOrders() {
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd.MM.yyyy, HH:mm");
         List<Order> orders = orderService.getOrdersByCustomer(currentUser.getId());
-        System.out.println("\n===== ISTORIC COMENZI =====");
+        int width = printTitle("ISTORIC COMENZI");
         if (orders.isEmpty())
             System.out.println("Nu s-au găsit comenzi.");
         else
@@ -268,7 +259,7 @@ public class ConsoleApp {
                                    " | " + order.getRestaurant().getName() + " | " + order.getStatus().getLabel() +
                                    " | Total: " + String.format("%.2f", order.getTotal()) + " lei" + ratingInfo);
             }
-        System.out.println("===========================\n");
+        printSectionEnd(width);
     }
 
     private void leaveReview() {
@@ -331,7 +322,7 @@ public class ConsoleApp {
         int choice = readInt();
         if (choice < 1 || choice > orders.size()) { System.out.println("Opțiune invalidă.\n"); return; }
         Order selected = orders.get(choice - 1);
-        System.out.println("\n===== DETALII COMANDĂ " + selected.getDisplayId() + " =====");
+        int width = printTitle("DETALII COMANDĂ " + selected.getDisplayId());
         System.out.println("Restaurant: " + selected.getRestaurant().getName());
         System.out.println("Data: " + selected.getDate().format(formatter));
         System.out.println("Stare: " + selected.getStatus().getLabel());
@@ -343,7 +334,7 @@ public class ConsoleApp {
         System.out.println("Total: " + String.format("%.2f", selected.getTotal()) + " lei");
         if (selected.getReview() != null)
             System.out.println("Recenzia ta: " + selected.getReview().getRating() + "/5 — " + selected.getReview().getComment());
-        System.out.println("==========================================\n");
+        printSectionEnd(width);
     }
 
     private void deleteOrder() {
@@ -378,14 +369,14 @@ public class ConsoleApp {
     private void browseRestaurantReviews() {
         Restaurant chosen = pickRestaurant();
         if (chosen == null) return;
-        System.out.println("\n===== RECENZII: " + chosen.getName() + " =====");
+        int width = printTitle("RECENZII: " + chosen.getName());
         List<Review> reviews = chosen.getReviews();
         if (reviews.isEmpty())
             System.out.println("Nicio recenzie disponibilă.");
         else
             for (Review r : reviews)
                 System.out.println("  " + r);
-        System.out.println("==========================================\n");
+        printSectionEnd(width);
     }
 
     private void runOrderLifecycle(Order order) {
@@ -452,6 +443,56 @@ public class ConsoleApp {
             return null;
         }
         return list.get(choice - 1);
+    }
+
+    private void printBoxMenu(String title, List<String> options) {
+        int width = BOX_WIDTH;
+        for (String option : options)
+            width = Math.max(width, option.length() + 4);
+        width = Math.max(width, title.length() + 4);
+
+        printLine('-', width);
+        System.out.println("|" + center(title, width - 2) + "|");
+        printLine('-', width);
+        for (String option : options)
+            System.out.println("| " + padRight(option, width - 4) + " |");
+        printLine('-', width);
+    }
+
+    private int printTitle(String title) {
+        String text = " " + title + " ";
+        int width = Math.max(BOX_WIDTH, title.length() + 8);
+        int left = (width - text.length()) / 2;
+        int right = width - text.length() - left;
+
+        System.out.println();
+        System.out.println("=".repeat(left) + text + "=".repeat(right));
+        return width;
+    }
+
+    private void printSectionEnd(int width) {
+        printLine('=', width);
+        System.out.println();
+    }
+
+    private void printLine(char ch) {
+        printLine(ch, BOX_WIDTH);
+    }
+
+    private void printLine(char ch, int width) {
+        System.out.println(String.valueOf(ch).repeat(width));
+    }
+
+    private String center(String text, int width) {
+        int left = Math.max(0, (width - text.length()) / 2);
+        int right = Math.max(0, width - text.length() - left);
+        return " ".repeat(left) + text + " ".repeat(right);
+    }
+
+    private String padRight(String text, int width) {
+        if (text.length() >= width)
+            return text;
+        return text + " ".repeat(width - text.length());
     }
 
     private void printMenuItems(List<MenuItem> items) {

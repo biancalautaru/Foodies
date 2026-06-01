@@ -1,5 +1,7 @@
 package config;
 
+import exceptions.RepositoryException;
+
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -26,7 +28,7 @@ public class DatabaseConfiguration {
         try (InputStream input = new FileInputStream(propertiesPath.toFile())) {
             props.load(input);
         } catch (IOException e) {
-            throw new RuntimeException("DatabaseConfiguration: failed to load " + propertiesPath, e);
+            throw new RepositoryException("DatabaseConfiguration: failed to load " + propertiesPath, e);
         }
 
         this.url = props.getProperty("db.url");
@@ -36,7 +38,7 @@ public class DatabaseConfiguration {
         try {
             this.connection = DriverManager.getConnection(url, user, password);
         } catch (SQLException e) {
-            throw new RuntimeException("DatabaseConfiguration: failed to open connection to " + url, e);
+            throw new RepositoryException("DatabaseConfiguration: failed to open connection to " + url, e);
         }
     }
 
@@ -53,7 +55,7 @@ public class DatabaseConfiguration {
                 connection = DriverManager.getConnection(url, user, password);
             }
         } catch (SQLException e) {
-            throw new RuntimeException("DatabaseConfiguration: failed to reopen connection", e);
+            throw new RepositoryException("DatabaseConfiguration: failed to reopen connection", e);
         }
         return connection;
     }

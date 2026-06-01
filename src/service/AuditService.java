@@ -1,7 +1,5 @@
 package service;
 
-import interfaces.IAuditService;
-
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.PrintWriter;
@@ -9,7 +7,7 @@ import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.time.LocalDateTime;
 
-public class AuditService implements IAuditService {
+public class AuditService {
     private static final String FILE = "logs/audit.csv";
 
     private AuditService() {
@@ -33,7 +31,6 @@ public class AuditService implements IAuditService {
         return Holder.INSTANCE;
     }
 
-    @Override
     public void log(String actionName) {
         try (PrintWriter writer = new PrintWriter(new FileWriter(FILE, true))) {
             writer.println(actionName + "," + LocalDateTime.now());

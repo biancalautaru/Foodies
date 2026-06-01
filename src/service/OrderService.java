@@ -2,8 +2,6 @@ package service;
 
 import exceptions.EntityNotFoundException;
 import exceptions.InvalidOrderException;
-import interfaces.IOrderService;
-import interfaces.IUserService;
 import models.*;
 import repository.DriverRepository;
 import repository.OrderRepository;
@@ -14,26 +12,21 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
-public class OrderService implements IOrderService {
+public class OrderService {
     private final OrderRepository orderRepository;
     private final RestaurantRepository restaurantRepository;
     private final ReviewRepository reviewRepository;
     private final DriverRepository driverRepository;
-    private final IUserService userService;
+    private final UserService userService;
 
-    public OrderService(OrderRepository orderRepository,
-                        RestaurantRepository restaurantRepository,
-                        ReviewRepository reviewRepository,
-                        DriverRepository driverRepository,
-                        IUserService userService) {
-        this.orderRepository = orderRepository;
-        this.restaurantRepository = restaurantRepository;
-        this.reviewRepository = reviewRepository;
-        this.driverRepository = driverRepository;
+    public OrderService(UserService userService) {
+        this.orderRepository = OrderRepository.getInstance();
+        this.restaurantRepository = RestaurantRepository.getInstance();
+        this.reviewRepository = ReviewRepository.getInstance();
+        this.driverRepository = DriverRepository.getInstance();
         this.userService = userService;
     }
 
-    @Override
     public Order placeOrder(Customer customer, Address address) {
         Cart cart = customer.getCart();
         if (cart.isEmpty())
@@ -58,7 +51,6 @@ public class OrderService implements IOrderService {
         return order;
     }
 
-    @Override
     public void confirmOrder(String orderId) {
         Order order = findOrderById(orderId);
 
@@ -72,7 +64,6 @@ public class OrderService implements IOrderService {
         AuditService.getInstance().log("confirmOrder");
     }
 
-    @Override
     public void restaurantCancelOrder(String orderId) {
         Order order = findOrderById(orderId);
 
@@ -84,7 +75,6 @@ public class OrderService implements IOrderService {
         AuditService.getInstance().log("restaurantCancelOrder");
     }
 
-    @Override
     public Order reorder(Customer customer, String originalOrderId, Address deliveryAddress) {
         Order original = findOrderById(originalOrderId);
 
@@ -112,7 +102,6 @@ public class OrderService implements IOrderService {
         return newOrder;
     }
 
-    @Override
     public void markOrderReady(String orderId) {
         Order order = findOrderById(orderId);
 
@@ -127,7 +116,6 @@ public class OrderService implements IOrderService {
         assignDriversToReadyOrders();
     }
 
-    @Override
     public void pickupOrder(String orderId) {
         Order order = findOrderById(orderId);
 
@@ -144,7 +132,6 @@ public class OrderService implements IOrderService {
         AuditService.getInstance().log("pickupOrder");
     }
 
-    @Override
     public void deliverOrder(String orderId) {
         Order order = findOrderById(orderId);
 
@@ -163,7 +150,6 @@ public class OrderService implements IOrderService {
         assignDriversToReadyOrders();
     }
 
-    @Override
     public void submitReview(String orderId, int rating, String comment) {
         Order order = findOrderById(orderId);
 
@@ -181,7 +167,6 @@ public class OrderService implements IOrderService {
         AuditService.getInstance().log("submitReview");
     }
 
-    @Override
     public void deleteOrder(Customer customer, String orderId) {
         Order order = findOrderById(orderId);
 
@@ -199,7 +184,6 @@ public class OrderService implements IOrderService {
         AuditService.getInstance().log("deleteOrder");
     }
 
-    @Override
     public List<Order> getOrdersByCustomer(String customerId) {
         List<Order> orders = orderRepository.readByCustomer(customerId);
         for (Order order : orders)
@@ -207,7 +191,6 @@ public class OrderService implements IOrderService {
         return orders;
     }
 
-    @Override
     public Order getOrderById(String orderId) {
         Order order = orderRepository.read(orderId);
         if (order == null)

@@ -1,17 +1,15 @@
 package repository;
 
-import config.DatabaseConfiguration;
 import models.MenuItem;
 import models.Restaurant;
 
-import java.sql.Connection;
-import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.util.ArrayList;
 import java.util.List;
 
-public class MenuItemRepository implements GenericRepository<MenuItem, String> {
+public class MenuItemRepository extends AbstractRepository<MenuItem, String> {
+    private static final MenuItemRepository INSTANCE = new MenuItemRepository();
+
     private static final String SQL_INSERT =
             "INSERT INTO menu_items (id, name, description, price, restaurant_id) VALUES (?, ?, ?, ?, ?)";
 
@@ -30,93 +28,46 @@ public class MenuItemRepository implements GenericRepository<MenuItem, String> {
     private static final String SQL_DELETE =
             "DELETE FROM menu_items WHERE id = ?";
 
-    private final Connection connection;
+    private MenuItemRepository() {}
 
-    public MenuItemRepository() {
-        this.connection = DatabaseConfiguration.getInstance().getConnection();
+    public static MenuItemRepository getInstance() {
+        return INSTANCE;
+    }
+
+    @Override
+    protected String repositoryName() {
+        return "MenuItemRepository";
     }
 
     @Override
     public void create(MenuItem item) {
-        try (PreparedStatement stmt = connection.prepareStatement(SQL_INSERT)) {
-            stmt.setString(1, item.getId());
-            stmt.setString(2, item.getName());
-            stmt.setString(3, item.getDescription());
-            stmt.setDouble(4, item.getPrice());
-            stmt.setString(5, item.getRestaurant() != null ? item.getRestaurant().getId() : null);
-            stmt.executeUpdate();
-        } catch (SQLException e) {
-            throw new RuntimeException("MenuItemRepository: create failed for id=" + item.getId(), e);
-        }
+        executeWrite(SQL_INSERT, item.getId(), item.getName(), item.getDescription(), item.getPrice(),
+                item.getRestaurant() != null ? item.getRestaurant().getId() : null);
     }
 
     @Override
     public MenuItem read(String id) {
-        try (PreparedStatement stmt = connection.prepareStatement(SQL_SELECT_BY_ID)) {
-            stmt.setString(1, id);
-            try (ResultSet rs = stmt.executeQuery()) {
-                if (rs.next()) {
-                    return mapRow(rs);
-                }
-            }
-        } catch (SQLException e) {
-            throw new RuntimeException("MenuItemRepository: read failed for id=" + id, e);
-        }
-        return null;
+        return queryOne(SQL_SELECT_BY_ID, this::mapRow, id);
     }
 
     @Override
     public List<MenuItem> readAll() {
-        List<MenuItem> result = new ArrayList<>();
-        try (PreparedStatement stmt = connection.prepareStatement(SQL_SELECT_ALL);
-             ResultSet rs = stmt.executeQuery()) {
-            while (rs.next()) {
-                result.add(mapRow(rs));
-            }
-        } catch (SQLException e) {
-            throw new RuntimeException("MenuItemRepository: readAll failed", e);
-        }
-        return result;
+        return queryList(SQL_SELECT_ALL, this::mapRow);
     }
 
     public List<MenuItem> readByRestaurant(String restaurantId) {
-        List<MenuItem> result = new ArrayList<>();
-        try (PreparedStatement stmt = connection.prepareStatement(SQL_SELECT_BY_RESTAURANT)) {
-            stmt.setString(1, restaurantId);
-            try (ResultSet rs = stmt.executeQuery()) {
-                while (rs.next()) {
-                    result.add(mapRow(rs));
-                }
-            }
-        } catch (SQLException e) {
-            throw new RuntimeException(
-                    "MenuItemRepository: readByRestaurant failed for restaurantId=" + restaurantId, e);
-        }
-        return result;
+        return queryList(SQL_SELECT_BY_RESTAURANT, this::mapRow, restaurantId);
     }
 
     @Override
     public void update(MenuItem item) {
-        try (PreparedStatement stmt = connection.prepareStatement(SQL_UPDATE)) {
-            stmt.setString(1, item.getName());
-            stmt.setString(2, item.getDescription());
-            stmt.setDouble(3, item.getPrice());
-            stmt.setString(4, item.getRestaurant() != null ? item.getRestaurant().getId() : null);
-            stmt.setString(5, item.getId());
-            stmt.executeUpdate();
-        } catch (SQLException e) {
-            throw new RuntimeException("MenuItemRepository: update failed for id=" + item.getId(), e);
-        }
+        executeWrite(SQL_UPDATE, item.getName(), item.getDescription(), item.getPrice(),
+                item.getRestaurant() != null ? item.getRestaurant().getId() : null, item.getId());
     }
 
     @Override
     public void delete(String id) {
-        try (PreparedStatement stmt = connection.prepareStatement(SQL_DELETE)) {
-            stmt.setString(1, id);
-            stmt.executeUpdate();
-        } catch (SQLException e) {
-            throw new RuntimeException("MenuItemRepository: delete failed for id=" + id, e);
-        }
+        executeWrite(SQL_DELETE, id);
     }
 
     private MenuItem mapRow(ResultSet rs) throws SQLException {
