@@ -10,7 +10,7 @@ Foodies este o aplicație Java de tip food delivery, rulată din consolă. Aplic
 - vizualizarea recenziilor pentru restaurante
 - plasarea unei comenzi cu produse din meniul unui restaurant
 - simularea fluxului comenzii: confirmare, pregătire, atribuire curier, ridicare și livrare
-- anularea unei comenzi de către restaurant
+- anularea unei comenzi de către restaurant înainte să intre în preparare
 - afișarea istoricului de comenzi al clientului
 - afișarea detaliilor unei comenzi: produse, subtotal, taxă de livrare și total
 - repetarea unei comenzi livrate anterior
@@ -61,11 +61,11 @@ db.user=user
 db.password=parola
 ```
 
-Daca baza este goala, `DataSeeder` adauga date initiale pentru testare.
+Dacă baza este goală, `DataSeeder` adaugă date inițiale pentru testare.
 
 ## Rulare 💻
 
-Cerintele proiectului:
+Cerințele proiectului:
 - JDK 17 sau mai nou
 - PostgreSQL
 - driverul JDBC PostgreSQL adăugat în classpath
@@ -78,7 +78,7 @@ Clasa de pornire este `main.Main`.
 2. Setează un SDK Java 17 sau mai nou din `File > Project Structure > Project SDK`.
 3. Adaugă driverul PostgreSQL JDBC în proiect din `File > Project Structure > Libraries > + > Java`, apoi selectează fișierul `postgresql-42.7.x.jar`.
 4. Creează baza de date PostgreSQL și rulează scriptul `sql/schema.sql`.
-5. Copiază `db.example.properties` în `db.properties` și completează `db.url`, `db.user` si `db.password`.
+5. Copiază `db.example.properties` în `db.properties` și completează `db.url`, `db.user` și `db.password`.
 6. Rulează clasa `main.Main`.
 
 ### Linie de comandă

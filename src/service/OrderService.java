@@ -70,7 +70,9 @@ public class OrderService {
         if (order.getStatus() != OrderStatus.PENDING)
             throw new InvalidOrderException("Restaurantul poate anula doar comenzile în așteptare. Comanda " + order.getDisplayId() + " este " + order.getStatus().getLabel() + ".");
 
-        order.cancelOrder();
+        if (!order.cancelPending())
+            throw new InvalidOrderException("Nu se poate anula comanda " + order.getDisplayId() + ".");
+
         orderRepository.update(order);
         AuditService.getInstance().log("restaurantCancelOrder");
     }
@@ -91,11 +93,14 @@ public class OrderService {
             deliveryAddress.setId(UUID.randomUUID().toString());
 
         List<MenuItem> originalItems = orderRepository.readItemsForOrder(originalOrderId);
-        original.setItems(originalItems);
-        original.setRestaurant(restaurant);
+        if (originalItems.isEmpty())
+            throw new InvalidOrderException("Comanda " + original.getDisplayId() + " nu are produse disponibile pentru re-comandare.");
 
         String newOrderId = UUID.randomUUID().toString();
-        Order newOrder = original.toNewOrder(newOrderId, deliveryAddress);
+        Order newOrder = new Order(newOrderId, customer, restaurant, deliveryAddress);
+        for (MenuItem item : originalItems)
+            newOrder.addItem(item);
+
         orderRepository.create(newOrder);
 
         AuditService.getInstance().log("reorder");

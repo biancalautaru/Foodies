@@ -100,8 +100,8 @@ public class Order implements Displayable {
         return false;
     }
 
-    public boolean cancelOrder() {
-        if (status == OrderStatus.DELIVERED || status == OrderStatus.CANCELLED)
+    public boolean cancelPending() {
+        if (status != OrderStatus.PENDING)
             return false;
 
         status = OrderStatus.CANCELLED;
@@ -124,32 +124,6 @@ public class Order implements Displayable {
             case OUT_FOR_DELIVERY: return newStatus == OrderStatus.DELIVERED;
             default: return false;
         }
-    }
-
-    private Order(Order source) {
-        this.id = source.id;
-        this.date = source.date;
-        this.customer = source.customer;
-        this.restaurant = source.restaurant;
-        this.deliveryAddress = source.deliveryAddress;
-        this.driver = source.driver;
-        this.items = new ArrayList<>(source.items);
-        this.status = source.status;
-        this.review = source.review;
-        this.statusChangeTime = source.statusChangeTime;
-    }
-
-    public Order toNewOrder(String newId, Address newDeliveryAddress) {
-        Order newOrder = new Order(this);
-        newOrder.id = newId;
-        newOrder.number = 0;
-        newOrder.date = LocalDateTime.now();
-        newOrder.deliveryAddress = newDeliveryAddress;
-        newOrder.status = OrderStatus.PENDING;
-        newOrder.statusChangeTime = LocalDateTime.now();
-        newOrder.driver = null;
-        newOrder.review = null;
-        return newOrder;
     }
 
     @Override

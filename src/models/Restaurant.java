@@ -1,14 +1,13 @@
 package models;
 
 import interfaces.Displayable;
-import interfaces.Reviewable;
 
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 
-public class Restaurant implements Comparable<Restaurant>, Reviewable, Displayable {
+public class Restaurant implements Comparable<Restaurant>, Displayable {
     private String id;
     private String name;
     private Address address;
@@ -58,10 +57,8 @@ public class Restaurant implements Comparable<Restaurant>, Reviewable, Displayab
     public List<Review> getReviews() { return Collections.unmodifiableList(reviews); }
     public void setReviews(List<Review> reviews) { this.reviews = reviews; }
 
-    @Override
     public int getReviewCount() { return reviews.size(); }
 
-    @Override
     public double getAverageRating() {
         if (reviews.isEmpty())
             return 0.0;

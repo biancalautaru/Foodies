@@ -1,9 +1,11 @@
 package models;
 
+import interfaces.Displayable;
+
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 
-public class Review {
+public class Review implements Displayable {
     private static final DateTimeFormatter FORMATTER = DateTimeFormatter.ofPattern("dd.MM.yyyy, HH:mm");
 
     private String id;
@@ -47,7 +49,12 @@ public class Review {
     public void setDate(LocalDateTime date) { this.date = date; }
 
     @Override
-    public String toString() {
+    public String toDisplayString() {
         return customer.getName() + " [" + date.format(FORMATTER) + "]: " + rating + "/5 stele - " + comment;
+    }
+
+    @Override
+    public String toString() {
+        return toDisplayString();
     }
 }
