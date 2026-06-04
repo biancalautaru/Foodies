@@ -21,7 +21,6 @@ public class Customer extends User {
     }
 
     public Cart getCart() { return cart; }
-    public void setCart(Cart cart) { this.cart = cart; }
 
     public String getPassword() { return password; }
     public void setPassword(String password) { this.password = password; }

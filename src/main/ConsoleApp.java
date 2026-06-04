@@ -11,6 +11,7 @@ import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Scanner;
+import java.util.Set;
 
 public class ConsoleApp {
     private static final int BOX_WIDTH = 50;
@@ -370,7 +371,7 @@ public class ConsoleApp {
         Restaurant chosen = pickRestaurant();
         if (chosen == null) return;
         int width = printTitle("RECENZII: " + chosen.getName());
-        List<Review> reviews = chosen.getReviews();
+        Set<Review> reviews = chosen.getReviews();
         if (reviews.isEmpty())
             System.out.println("Nicio recenzie disponibilă.");
         else
@@ -473,10 +474,6 @@ public class ConsoleApp {
     private void printSectionEnd(int width) {
         printLine('=', width);
         System.out.println();
-    }
-
-    private void printLine(char ch) {
-        printLine(ch, BOX_WIDTH);
     }
 
     private void printLine(char ch, int width) {

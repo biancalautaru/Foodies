@@ -4,6 +4,7 @@ import interfaces.Displayable;
 
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.Objects;
 
 public class Review implements Displayable {
     private static final DateTimeFormatter FORMATTER = DateTimeFormatter.ofPattern("dd.MM.yyyy, HH:mm");
@@ -51,6 +52,20 @@ public class Review implements Displayable {
     @Override
     public String toDisplayString() {
         return customer.getName() + " [" + date.format(FORMATTER) + "]: " + rating + "/5 stele - " + comment;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o)
+            return true;
+        if (!(o instanceof Review review))
+            return false;
+        return Objects.equals(id, review.id);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(id);
     }
 
     @Override

@@ -2,17 +2,17 @@ package models;
 
 import interfaces.Displayable;
 
-import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
-import java.util.List;
+import java.util.LinkedHashSet;
+import java.util.Set;
 
 public class Restaurant implements Comparable<Restaurant>, Displayable {
     private String id;
     private String name;
     private Address address;
-    private List<MenuItem> menu;
-    private List<Review> reviews;
+    private Set<Review> reviews;
 
     public static final Comparator<Restaurant> BY_RATING = (a, b) -> {
         boolean aNoReviews = a.getReviewCount() == 0;
@@ -30,16 +30,14 @@ public class Restaurant implements Comparable<Restaurant>, Displayable {
     };
 
     public Restaurant() {
-        this.menu = new ArrayList<>();
-        this.reviews = new ArrayList<>();
+        this.reviews = new LinkedHashSet<>();
     }
 
     public Restaurant(String id, String name, Address address) {
         this.id = id;
         this.name = name;
         this.address = address;
-        this.menu = new ArrayList<>();
-        this.reviews = new ArrayList<>();
+        this.reviews = new LinkedHashSet<>();
     }
 
     public String getId() { return id; }
@@ -51,11 +49,8 @@ public class Restaurant implements Comparable<Restaurant>, Displayable {
     public Address getAddress() { return address; }
     public void setAddress(Address address) { this.address = address; }
 
-    public List<MenuItem> getMenu() { return Collections.unmodifiableList(menu); }
-    public void setMenu(List<MenuItem> menu) { this.menu = menu; }
-
-    public List<Review> getReviews() { return Collections.unmodifiableList(reviews); }
-    public void setReviews(List<Review> reviews) { this.reviews = reviews; }
+    public Set<Review> getReviews() { return Collections.unmodifiableSet(reviews); }
+    public void setReviews(Collection<Review> reviews) { this.reviews = new LinkedHashSet<>(reviews); }
 
     public int getReviewCount() { return reviews.size(); }
 
